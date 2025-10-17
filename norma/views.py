@@ -1,3 +1,4 @@
 from django.shortcuts import render
 
-# Create your views here.
+def proj_list(request):
+    return render(request, 'norma/proj_list.html', {})
