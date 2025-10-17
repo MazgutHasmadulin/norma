@@ -1,4 +1,7 @@
-<html>
-    <p>Hi there!</p>
-    <p>It works!</p>
-</html>
+{% for proj in projs %}
+    <div>
+        <p>published: {{ projs.published_date }}</p>
+        <h1><a href="">{{ projs.title }}</a></h1>
+        <p>{{ projs.text|linebreaksbr }}</p>
+    </div>
+{% endfor %}
