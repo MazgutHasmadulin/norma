@@ -1,7 +1,37 @@
-{% for proj in projs %}
-    <div>
-        <p>published: {{ projs.published_date }}</p>
-        <h1><a href="">{{ projs.title }}</a></h1>
-        <p>{{ projs.text|linebreaksbr }}</p>
-    </div>
-{% endfor %}
+<!-- список проектов, расширяет базовый шаблон base.html -->
+
+{% extends 'norma/base.html' %}
+
+{% block content %}
+<div>
+    <h1>Проекты</h1>
+</div>
+
+<!--Это должны быть кнопки с левой стороны:все проекты, избранное-->
+<div class="left-control-button-group">
+    <button type="button" class="btn-success" value="Все">Все</button>
+    <button type="button" class="btn-success" value="Избранное">Избранное</button>
+</div>
+<!--строка поиска по центру-->
+<!--кнопка создания нового проекта с правой-->
+<div class="table">
+    <table>
+        <tr>
+            <td>#</td>
+            <td>Название</td>
+            <td>Дата создания</td>
+            <td>Последнее обновление</td>
+            <td>Участники</td>
+        </tr>
+    {% for proj in projs %}
+     <tr>
+            <td>{{ proj.id}}</td>
+            <td><a href="{% url 'proj_dashboard' pk=proj.pk %}"> {{ proj.title}}</a></td>
+            <td>{{ proj.created_date}}</td>
+            <td>{{ proj.last_update_date}}</td>
+            <td>{{ proj.personel}}</td>
+        </tr>
+    {% endfor %}
+    </table>
+</div>
+{% endblock %}
