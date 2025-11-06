@@ -23,3 +23,22 @@ def proj_new(request):
     else:
         form = ProjCreationForm()
     return render(request, 'norma/proj_edit.html',{'form':form})
+
+def proj_edit(request, pk):
+    proj = get_object_or_404(Proj, pk=pk)
+    if request.method == "POST":
+        form = ProjCreationForm(request.POST, instance=proj)
+        if form.is_valid():
+            proj = form.save(commit=False)
+            proj.author = request.user
+            proj.published_date = timezone.now()
+            proj.save()
+            return redirect('proj_dashboard', pk=proj.pk)
+    else:
+        form = ProjCreationForm(instance=proj)
+    return render(request, 'norma/proj_edit.html', {'form': form})
+
+def proj_delete(request, pk):
+    proj=get_object_or_404(Proj, pk=pk)
+    proj.delete()
+    return redirect('norma/base.html')

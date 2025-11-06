@@ -3,7 +3,61 @@
 {% extends 'norma/base.html' %}
 
 {% block content %}
+<!--Сайдбар, пока не готов-->
+<div class="d-flex flex-column flex-shrink-0 bg-light" style="width: 4.5rem;">
+    </a>
+    <ul class="nav nav-pills nav-flush flex-column mb-auto text-center">
+      <li class="nav-item">
+        <a href="#" class="nav-link active py-3 border-bottom" aria-current="page" title="Домашняя страница" data-bs-toggle="tooltip" data-bs-placement="right">
+          <svg class="bi" width="24" height="24" role="img" aria-label="Home"><use xlink:href="#home"/></svg>
+        </a>
+      </li>
+            <li class="nav-item">
+        <a href="#" class="nav-link active py-3 border-bottom" aria-current="page" title="Помощь" data-bs-toggle="tooltip" data-bs-placement="right">
+          <svg class="bi" width="24" height="24" role="img" aria-label="Home"><use xlink:href="#home"/></svg>
+        </a>
+      </li>
+    </ul>
+    <div class="dropdown border-top">
+      <a href="#" class="d-flex align-items-center justify-content-center p-3 link-dark text-decoration-none dropdown-toggle" id="dropdownUser3" data-bs-toggle="dropdown" aria-expanded="false">
+        <img src="https://github.com/mdo.png" alt="mdo" width="24" height="24" class="rounded-circle">
+      </a>
+      <ul class="dropdown-menu text-small shadow" aria-labelledby="dropdownUser3">
+        <li><a class="dropdown-item" href="#">Настройки</a></li>
+        <li><a class="dropdown-item" href="#">Профиль</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="#">Выйти из учетной записи</a></li>
+      </ul>
+    </div>
+  </div>
+
 <div>
     {{proj.title}}
+    <table>
+        <tr>
+            <td>Epic</td>
+            <td>Feature</td>
+            <td>Story</td>
+            <td>Case</td>
+        </tr>
+    <!-- таблица с кейсами проекта
+        {% for proj in projs %}
+     <tr>
+            <td>{{ proj.id}}</td>
+            <td><a href="{% url 'proj_dashboard' pk=proj.pk %}"> {{ proj.title}}</a></td>
+            <td>{{ proj.created_date}}</td>
+            <td>{{ proj.last_update_date}}</td>
+            <td>{{ proj.personel}}</td>
+        </tr>
+    {% endfor %}
+    -->
+    </table>
+
+</div>
+<div>
+<!--можно поменять на пиктограмму-->
+<a href="/" title="К списку проектов">К списку проектов</a>
+<a href="{% url 'proj_edit' pk=proj.pk %}" title="Редактировать">Редактировать</a>
+<a href="{% url 'proj_delete' pk=proj.pk %}" title="Удалить">Удалить</a>
 </div>
 {% endblock %}
