@@ -95,14 +95,10 @@ class Launches(models.Model):
             defaults={'status': 'not_run'}
         )
 
-class LaunchedCases(models.Model):
-    title = models.ForeignKey(Cases, on_delete=models.CASCADE)
-    launch = models.ForeignKey(Launches, on_delete=models.CASCADE)
-    def __str__(self):
-        return self.title
-
 #хранит результаты прохождения и инфу по каждому пройденному кейсу в запуске
 class TestRunResult(models.Model):
+    testCase = models.ForeignKey(Cases, on_delete=models.CASCADE)
+    launch = models.ForeignKey(Launches, on_delete=models.CASCADE, null=True)
     """
     Результат выполнения конкретного тест-кейса в рамках запуска
     """
@@ -113,13 +109,6 @@ class TestRunResult(models.Model):
         ('skipped' , 'пропущенный'),
         ('correction_needed' , 'кейс требует правки')
     ]
-
-    test_case = models.ForeignKey(
-        LaunchedCases,
-        on_delete=models.CASCADE,
-        verbose_name="Тест-кейс",
-        related_name='test_run_results'
-    )
     
     status = models.CharField(
         max_length=20,
@@ -157,26 +146,26 @@ class TestRunResult(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
 
-    def __str__(self):
-        return f"{self.test_case.title} - {self.get_status_display()}"
+    # def __str__(self):
+    #     return self.title
 
-    def clean(self):
-        # Нельзя установить executed_by без executed_at и наоборот
-        if bool(self.executed_by) != bool(self.executed_at):
-            raise ValidationError("Поля 'Выполнил' и 'Дата выполнения' должны быть заполнены одновременно")
+    # def clean(self):
+    #     # Нельзя установить executed_by без executed_at и наоборот
+    #     if bool(self.executed_by) != bool(self.executed_at):
+    #         raise ValidationError("Поля 'Выполнил' и 'Дата выполнения' должны быть заполнены одновременно")
 
-    def save(self, *args, **kwargs):
-        # Автоматически устанавливаем executed_at при изменении статуса на выполненный
-        if self.status in ['passed', 'failed', 'blocked'] and not self.executed_at:
-            self.executed_at = timezone.now()
+    # def save(self, *args, **kwargs):
+    #     # Автоматически устанавливаем executed_at при изменении статуса на выполненный
+    #     if self.status in ['passed', 'failed', 'blocked'] and not self.executed_at:
+    #         self.executed_at = timezone.now()
         
-        # Если статус сброшен на not_run, очищаем executed_at и executed_by
-        if self.status == 'not_run':
-            self.executed_at = None
-            self.executed_by = None
+    #     # Если статус сброшен на not_run, очищаем executed_at и executed_by
+    #     if self.status == 'not_run':
+    #         self.executed_at = None
+    #         self.executed_by = None
         
-        self.full_clean()
-        super().save(*args, **kwargs)
+    #     self.full_clean()
+    #     super().save(*args, **kwargs)
         
-        # Обновляем метрики родительского запуска
-        self.test_run.save()
+    #     # Обновляем метрики родительского запуска
+    #     self.test_run.save()
