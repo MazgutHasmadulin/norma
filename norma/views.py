@@ -73,4 +73,4 @@ def cases_list(request, pk):
 def case_detail(request, pk):
     """Детальная страница тест-кейса"""
     case = get_object_or_404(Cases, pk=pk)
-    return render(request, 'cases/case_detail.html', {'case': case})
+    return render(request, 'norma/case_detail.html', {'case': case})
