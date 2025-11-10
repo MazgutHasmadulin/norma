@@ -1,14 +1,6 @@
 {% extends 'norma/base.html' %}
 {% block content %}
 <div class="container mt-4">
-    <!-- Хлебные крошки -->
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'proj_list' %}">Проекты</a></li>
-            <li class="breadcrumb-item active">{{ project.title }}</li>
-        </ol>
-    </nav>
-
     <!-- Заголовок -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Тест-кейсы проекта: {{ project.title }}</h1>

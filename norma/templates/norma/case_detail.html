@@ -2,18 +2,10 @@
 
 {% block content %}
 <div class="container mt-4">
-    <!-- Хлебные крошки -->
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'proj_list' %}">Проекты</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'cases_list' case.folder.project.id %}">{{ case.folder.project.name }}</a></li>
-            <li class="breadcrumb-item active">{{ case.title }}</li>
-        </ol>
-    </nav>
-
+    
     <!-- Заголовок и действия -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>{{ case.title }}</h1>
+        <h1>#{{case.id}} {{ case.title }}</h1>
         <div>
             <a href="{% url 'cases_list' case.folder.project.id %}" class="btn btn-secondary">
                 ← Назад к списку
@@ -73,7 +65,7 @@
                         </tr>
                         {% if case.published_date %}
                         <tr>
-                            <td><strong>Опубликован:</strong></td>
+                            <td><strong>Последние изменения:</strong></td>
                             <td>{{ case.published_date|date:"d.m.Y H:i" }}</td>
                         </tr>
                         {% endif %}
