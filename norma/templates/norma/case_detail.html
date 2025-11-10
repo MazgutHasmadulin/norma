@@ -1,0 +1,126 @@
+{% extends 'norma/cases_list.html' %}
+
+{% block content %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Хлебные крошки -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'project_list' %}">Проекты</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'project_cases' case.folder.project.id %}">{{ case.folder.project.name }}</a></li>
+            <li class="breadcrumb-item active">{{ case.title }}</li>
+        </ol>
+    </nav>
+
+    <!-- Заголовок и действия -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>{{ case.title }}</h1>
+        <div>
+            <a href="{% url 'project_cases' case.folder.project.id %}" class="btn btn-secondary">
+                ← Назад к списку
+            </a>
+            <a href="{% url 'case_edit' case.id %}" class="btn btn-primary">Редактировать</a>
+        </div>
+    </div>
+
+    <!-- Основная информация -->
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Карточка с содержимым тест-кейса -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Содержание тест-кейса</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Описание:</strong>
+                        <p class="mt-2">{{ case.text|linebreaks }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Карточка с мета-информацией -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Информация</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td><strong>Статус:</strong></td>
+                            <td>
+                                <span class="badge bg-{{ case.status|status_color }}">
+                                    {{ case.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Проект:</strong></td>
+                            <td>{{ case.folder.project.name }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Папка:</strong></td>
+                            <td>{{ case.folder.name }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Автор:</strong></td>
+                            <td>{{ case.author.username }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Создан:</strong></td>
+                            <td>{{ case.created_date|date:"d.m.Y H:i" }}</td>
+                        </tr>
+                        {% if case.published_date %}
+                        <tr>
+                            <td><strong>Опубликован:</strong></td>
+                            <td>{{ case.published_date|date:"d.m.Y H:i" }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+
+            <!-- Действия -->
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6>Действия</h6>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'case_edit' case.id %}" class="btn btn-outline-primary btn-sm">
+                            Редактировать
+                        </a>
+                        <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                            Удалить
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно удаления -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Подтверждение удаления</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Вы уверены, что хотите удалить тест-кейс "{{ case.title }}"?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <form method="post" action="{% url 'case_delete' case.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Удалить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

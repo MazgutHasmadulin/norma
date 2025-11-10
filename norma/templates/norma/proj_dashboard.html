@@ -58,6 +58,7 @@
 <!--можно поменять на пиктограмму-->
 <a href="/" title="К списку проектов">К списку проектов</a>
 <a href="{% url 'proj_edit' pk=proj.pk %}" title="Редактировать">Редактировать</a>
+<a href="{% url 'cases_list' pk=proj.pk %}" title="Открыть тест-кейсы">Тест-кейсы</a>
 <a href="{% url 'proj_delete' pk=proj.pk %}" title="Удалить">Удалить</a>
 </div>
 {% endblock %}

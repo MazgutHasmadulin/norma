@@ -42,12 +42,16 @@ class Cases(models.Model):
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
 
-    status = [
-        ('Черновик'),
-        ('На ревью'),
-        ('Актуальный'),
-        ('Требует доработки')
+    STATUS_CHOICES = [
+        ('draft' , 'Черновик'),
+        ('on_review' , 'На ревью'),
+        ('actual' , 'Актуальный'),
+        ('correction_needed' , 'Требует доработки')
     ]
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='Черновик')
 
     text = models.TextField()
     created_date = models.DateTimeField(default=timezone.now)
