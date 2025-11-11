@@ -6,6 +6,9 @@ urlpatterns = [
     path('proj/new/', views.proj_new, name='proj_new'),
     path('proj/<int:pk>/edit/', views.proj_edit, name='proj_edit'),
     path('proj/<int:pk>/delete/', views.proj_delete, name='proj_delete'),
+    path('cases/new', views.case_new, name='case_new' ),
+    path('cases/<int:pk>/edit/', views.case_edit, name='case_edit' ),
+    path('cases/<int:pk>/delete/', views.case_delete, name='case_delete' ),
     path('cases/<int:pk>',views.case_detail, name='case_detail'),
     path('proj/<int:pk>/cases/', views.cases_list, name='cases_list'),
 ]

@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
 from .models import Proj, Folders, Cases, Launches, TestRunResult
-from .forms import ProjCreationForm
+from .forms import ProjCreationForm, CaseCreationForm
 from django.db.models import Prefetch
 
 def proj_list(request):
@@ -74,3 +74,52 @@ def case_detail(request, pk):
     """Детальная страница тест-кейса"""
     case = get_object_or_404(Cases, pk=pk)
     return render(request, 'norma/case_detail.html', {'case': case})
+
+def case_new(request):
+    if request.method == "POST":
+        form=CaseCreationForm(request.POST)
+        if form.is_valid():
+            case = form.save(commit=False)
+            case.author = request.user
+            case.published_date = timezone.now()
+            case.save()
+            proj=case.folder.project.id
+            return redirect('cases_list', pk=proj)
+    else:
+        form = CaseCreationForm()
+    return render(request, 'norma/proj_edit.html',{'form':form})#поменять, мы хотим возвращаться в список кейсов
+
+def case_edit(request, pk):
+    case = get_object_or_404(Cases, pk=pk)
+    if request.method == "POST":
+        form = CaseCreationForm(request.POST, instance=case)
+        if form.is_valid():
+            case = form.save(commit=False)
+            case.author = request.user
+            case.published_date = timezone.now()
+            case.save()
+            proj=case.folder.project.id
+            return redirect('cases_list', pk=proj)
+    else:
+        form = CaseCreationForm(instance=case)
+    return render(request, 'norma/proj_edit.html', {'form': form})#поменять, мы хотим возвращаться в список кейсов
+
+def case_delete(request, pk):
+    case=get_object_or_404(Cases, pk=pk)
+    proj=case.folder.project.id
+    case.delete()
+    return redirect('cases_list', pk=proj)
+
+def folder_new(request):
+    if request.method == "POST":
+        form=CaseCreationForm(request.POST)
+        if form.is_valid():
+            case = form.save(commit=False)
+            case.author = request.user
+            case.published_date = timezone.now()
+            case.save()
+            proj=case.folder.project.id
+            return redirect('cases_list', pk=proj)
+    else:
+        form = CaseCreationForm()
+    return render(request, 'norma/proj_edit.html',{'form':form})#поменять, мы хотим возвращаться в список кейсов
