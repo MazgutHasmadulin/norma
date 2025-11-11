@@ -1,0 +1,38 @@
+{% extends 'norma/base.html' %}
+{% block content %}
+<h2>Папка: {{ folder.name }}</h2>
+<p>Проект: <a href="{% url 'proj_dashboard' pk=project.pk %}">{{ project.title }}</a></p>
+{% if folder.parent_folder %}
+<p>Родительская папка: <a href="{% url 'folder_detail' proj_pk=project.pk folder_pk=folder.parent_folder.pk %}">{{ folder.parent_folder.name }}</a></p>
+{% else %}
+<p>Корневая папка проекта</p>
+{% endif %}
+<hr>
+<h3>Вложенные папки</h3>
+<ul>
+  {% for sub in subfolders %}
+    <li><a href="{% url 'folder_detail' proj_pk=project.pk folder_pk=sub.pk %}">{{ sub.name }}</a></li>
+  {% empty %}
+    <li>Нет вложенных папок</li>
+  {% endfor %}
+</ul>
+<a class="btn btn-sm btn-primary" href="{% url 'folder_new' proj_pk=project.pk %}?parent_folder={{ folder.pk }}">Добавить вложенную папку</a>
+<hr>
+<h3>Кейсы в папке</h3>
+<ul>
+  {% for case in cases %}
+    <li><a href="{% url 'case_detail_in_folder' proj_pk=project.pk folder_pk=folder.pk case_pk=case.pk %}">{{ case.title }}</a></li>
+  {% empty %}
+    <li>Нет кейсов</li>
+  {% endfor %}
+</ul>
+<a class="btn btn-sm btn-success" href="{% url 'case_new_in_folder' proj_pk=project.pk folder_pk=folder.pk %}">Добавить кейс</a>
+<hr>
+<a class="btn btn-outline-secondary btn-sm" href="{% url 'folder_edit' proj_pk=project.pk folder_pk=folder.pk %}">Редактировать папку</a>
+<a class="btn btn-outline-danger btn-sm" href="{% url 'folder_delete' proj_pk=project.pk folder_pk=folder.pk %}">Удалить папку</a>
+{% if folder.parent_folder %}
+<a class="btn btn-link btn-sm" href="{% url 'folder_detail' proj_pk=project.pk folder_pk=folder.parent_folder.pk %}">↑ К родительской папке</a>
+{% else %}
+<a class="btn btn-link btn-sm" href="{% url 'proj_dashboard' pk=project.pk %}">↑ К проекту</a>
+{% endif %}
+{% endblock %}

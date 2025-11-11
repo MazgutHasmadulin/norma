@@ -1,0 +1,12 @@
+{% extends 'norma/base.html' %}
+{% block content %}
+<h2>{% if folder %}Редактировать папку{% else %}Создать папку{% endif %}</h2>
+<form method="post">{% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Сохранить</button>
+</form>
+{% if parent_folder %}
+<p>Родительская папка: <a href="{% url 'folder_detail' proj_pk=project.pk folder_pk=parent_folder.pk %}">{{ parent_folder.name }}</a></p>
+{% endif %}
+<a href="{% url 'proj_dashboard' pk=project.pk %}">Назад к проекту</a>
+{% endblock %}
