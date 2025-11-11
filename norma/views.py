@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
 from .models import Proj, Folders, Cases, Launches, TestRunResult
-from .forms import ProjCreationForm, CaseCreationForm
+from .forms import ProjCreationForm, CaseCreationForm, FolderCreationForm
 from django.db.models import Prefetch
 
 def proj_list(request):
@@ -112,14 +112,31 @@ def case_delete(request, pk):
 
 def folder_new(request):
     if request.method == "POST":
-        form=CaseCreationForm(request.POST)
+        form=FolderCreationForm(request.POST)
         if form.is_valid():
-            case = form.save(commit=False)
-            case.author = request.user
-            case.published_date = timezone.now()
-            case.save()
-            proj=case.folder.project.id
+            folder = form.save(commit=False)
+            folder.save()
+            proj=folder.project.id
             return redirect('cases_list', pk=proj)
     else:
-        form = CaseCreationForm()
+        form = FolderCreationForm()
     return render(request, 'norma/proj_edit.html',{'form':form})#поменять, мы хотим возвращаться в список кейсов
+
+def folder_edit(request, pk):
+    folder = get_object_or_404(Folders, pk=pk)
+    if request.method == "POST":
+        form = FolderCreationForm(request.POST, instance=form)
+        if form.is_valid():
+            folder = form.save(commit=False)
+            folder.save()
+            proj=folder.project.id
+            return redirect('cases_list', pk=proj)
+    else:
+        form = FolderCreationForm(instance=form)
+    return render(request, 'norma/proj_edit.html', {'form': form})#поменять, мы хотим возвращаться в список кейсов
+
+def folder_delete(request, pk):
+    folder=get_object_or_404(Folders, pk=pk)
+    proj=folder.project.id
+    folder.delete()
+    return redirect('cases_list', pk=proj)
