@@ -1,49 +1,186 @@
+<!-- templates/cases/project_cases_list.html -->
 {% extends 'norma/base.html' %}
+{% load static %}
+
 {% block content %}
 <div class="container mt-4">
-    <!-- Заголовок -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Тест-кейсы проекта: {{ project.title }}</h1>
-        <a href="{% url 'case_new' proj_pk=project.pk %}" class="btn btn-primary">
-            + Создать тест-кейс
-        </a>
-            + Создать папку
-        </a>
-        <a href="{% url 'proj_dashboard' pk=project.pk %}" class="btn btn-secondary">
+        <div>
+            <a href="{% url 'proj_dashboard' pk=project.pk %}" class="btn btn-secondary">
                 ← Назад к проекту
             </a>
-    </div>
-
-    <!-- Общая статистика -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card text-white bg-success">
-                <div class="card-body">
-                    <h5 class="card-title">{{ cases.count }}</h5><!--тут надо поправить, не считает-->
-                    <p class="card-text">Всего кейсов</p>
-                </div>
-            </div>
+            <a href="{% url 'case_new' proj_pk=project.pk %}" class="btn btn-primary">
+                + Создать тест-кейс
+            </a>
         </div>
     </div>
+
+    <!-- Форма создания запуска -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Создать новый запуск</h5>
+        </div>
+        <div class="card-body">
+            <form id="launchForm" method="post">
+                {% csrf_token %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="id_name" class="form-label">Название запуска</label>
+                        <input type="text" name="name" class="form-control" id="id_name" placeholder="Введите название запуска" required>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="id_description" class="form-label">Описание</label>
+                    <textarea name="description" class="form-control" id="id_description" rows="3" placeholder="Описание (необязательно)"></textarea>
+                </div>
+                
+                <!-- Скрытое поле для выбранных кейсов -->
+                <select name="case_ids" id="id_case_ids" multiple style="display: none;"></select>
+                
+                <button type="submit" class="btn btn-success" id="createLaunchBtn" disabled>
+                    Создать запуск с <span id="selectedCount">0</span> кейсами
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Список кейсов с чекбоксами -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Доступные тест-кейсы</h5>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="selectAll">
+                <label class="form-check-label" for="selectAll">
+                    Выбрать все
+                </label>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if cases %}
             <div class="list-group">
                 {% for case in cases %}
-                <a href="{% url 'case_detail' proj_pk=project.pk case_pk=case.pk %}" class="list-group-item list-group-item-action">
-                    <div class="d-flex w-100 justify-content-between">
-                        <h6 class="mb-1">{{ case.title }}</h6>
-                        <small class="text-muted">{{ case.created_date|date:"d.m.Y" }}</small>
+                <div class="list-group-item">
+                    <div class="form-check d-flex align-items-start">
+                        <input class="form-check-input case-checkbox me-3 mt-1" 
+                               type="checkbox" 
+                               value="{{ case.id }}" 
+                               id="case_{{ case.id }}">
+                        <div class="flex-grow-1">
+                            <label class="form-check-label w-100" for="case_{{ case.id }}">
+                                <a href="{% url 'case_detail' proj_pk=project.pk case_pk=case.pk %}" class="text-decoration-none text-dark">
+                                    <h6 class="mb-1">{{ case.title }}</h6>
+                                    <p class="mb-1 text-muted">{{ case.text|truncatewords:30 }}</p>
+                                    <small class="text-muted">
+                                        <span class="badge bg-{{ case.status}}">{{ case.status}}</span>
+                                        Автор: {{ case.author.username }} | 
+                                        Создан: {{ case.created_date|date:"d.m.Y" }}
+                                    </small>
+                                </a>
+                            </label>
+                        </div>
                     </div>
-                    <p class="mb-1">{{ case.text|truncatewords:20 }}</p>
-                    <small>
-                        <span class="badge bg-{{ case.status}}">{{ case.get_status_display }}</span>
-                        <span class="text-muted">Автор: {{ case.author.username }}</span>
-                    </small>
-                </a>
+                </div>
                 {% endfor %}
             </div>
-            <!--тут надо присрать условие, по которому будет показываться блок ниже-->
-    <div class="alert alert-info">
-        <h4>В проекте пока нет папок с тест-кейсами</h4>
-        <p>Создайте первую папку и добавьте тест-кейсы для организации ваших тестов.</p>
+            {% else %}
+            <p class="text-muted">В проекте пока нет тест-кейсов.</p>
+            {% endif %}
+        </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const caseCheckboxes = document.querySelectorAll('.case-checkbox');
+    const selectedCountSpan = document.getElementById('selectedCount');
+    const createLaunchBtn = document.getElementById('createLaunchBtn');
+    const caseIdsField = document.getElementById('id_case_ids');
+    const launchForm = document.getElementById('launchForm');
+    
+    console.log('Elements found:', {
+        selectAllCheckbox,
+        caseCheckboxes: caseCheckboxes.length,
+        selectedCountSpan,
+        createLaunchBtn,
+        caseIdsField,
+        launchForm
+    });
+    
+    // Функция обновления счетчика выбранных кейсов
+    function updateSelectedCount() {
+        const selectedCases = Array.from(caseCheckboxes).filter(cb => cb.checked);
+        const count = selectedCases.length;
+        
+        console.log('Selected cases:', count);
+        
+        selectedCountSpan.textContent = count;
+        createLaunchBtn.disabled = count === 0;
+        
+        // Обновляем скрытое поле формы
+        caseIdsField.innerHTML = '';
+        selectedCases.forEach(cb => {
+            const option = document.createElement('option');
+            option.value = cb.value;
+            option.selected = true;
+            caseIdsField.appendChild(option);
+        });
+        
+        // Обновляем состояние "Выбрать все"
+        selectAllCheckbox.checked = count === caseCheckboxes.length && count > 0;
+        selectAllCheckbox.indeterminate = count > 0 && count < caseCheckboxes.length;
+    }
+    
+    // Обработчик для "Выбрать все"
+    selectAllCheckbox.addEventListener('change', function() {
+        console.log('Select all changed:', this.checked);
+        caseCheckboxes.forEach(cb => {
+            cb.checked = this.checked;
+        });
+        updateSelectedCount();
+    });
+    
+    // Обработчики для отдельных чекбоксов
+    caseCheckboxes.forEach(cb => {
+        cb.addEventListener('change', function() {
+            console.log('Checkbox changed:', this.value, this.checked);
+            updateSelectedCount();
+        });
+    });
+    
+    // Инициализация счетчика
+    updateSelectedCount();
+    
+    // Подтверждение создания запуска
+    launchForm.addEventListener('submit', function(e) {
+        const selectedCount = parseInt(selectedCountSpan.textContent);
+        console.log('Form submit, selected count:', selectedCount);
+        
+        if (selectedCount === 0) {
+            e.preventDefault();
+            alert('Выберите хотя бы один тест-кейс');
+            return false;
+        }
+        
+        if (!confirm(`Создать запуск с ${selectedCount} кейсами?`)) {
+            e.preventDefault();
+            return false;
+        }
+        
+        console.log('Form submitted successfully');
+    });
+    
+    // Добавляем обработчики для предотвращения перехода по ссылке при клике на чекбокс
+    caseCheckboxes.forEach(cb => {
+        cb.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    });
+});
+</script>
+
 {% endblock %}
+

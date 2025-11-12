@@ -1,11 +1,72 @@
-<!-- дашборд проекта, в который проваливаемся из списка проектов proj_list.html -->
-
 {% extends 'norma/base.html' %}
 
 {% block content %}
-<h2>Проект: {{ proj.title }}</h2>
-<p>Дата последнего обновления: {{ proj.last_update_date }}</p>
-<a href="{% url 'cases_list' pk=proj.pk %}">Перейти к списку кейсов</a>
-<a href="{% url 'proj_edit' pk=proj.pk %}">Редактировать проект</a> |
-<a href="{% url 'proj_delete' pk=proj.pk %}">Удалить проект</a>
+<div class="container mt-4">
+    <h1>Проект: {{ project.title }}</h1>
+    <p>Дата последнего обновления: {{ proj.last_update_date }}</p>
+    <a href="{% url 'proj_edit' pk=project.id %}">Редактировать проект</a>
+    <a href="{% url 'proj_delete' pk=project.id %}">Удалить проект</a>
+    
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary">
+                <div class="card-body text-center">
+                    <h4>{{ cases_count }}</h4>
+                    <p class="mb-0">Тест-кейсов</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Запуски: {{ launches.count }}</h5>
+                    
+                    <a href="{% url 'cases_list' pk=project.id %}" class="btn btn-primary btn-sm">
+                        Создать запуск
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% for launch in launches %}
+                    <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                        <div>
+                            <a href="{% url 'launch_detail' launch.id %}" class="text-decoration-none">
+                                {{ launch.title }}
+                            </a>
+                            <small class="d-block text-muted">
+                                Создан: {{ launch.created_at|date:"d.m.Y" }} | 
+                                Кейсов: {{ launch.test_results.count }}
+                            </small>
+                        </div>
+                        <a href="{% url 'launch_detail' launch.id %}" class="btn btn-outline-primary btn-sm">
+                            Открыть
+                        </a>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">Пока нет запусков</p>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Всего кейсов: {{ cases.count }}</h5>
+                    
+                    <a href="{% url 'cases_list' pk=project.id %}" class="btn btn-primary btn-sm">
+                        Открыть список кейсов
+                    </a>
+                </div>
+                <div class="card-body">
+                    <p>Черновик количество/%</p>
+                    <p>На ревью количество/%</p>
+                    <p>Актуальные количество/%</p>
+                    <p>Требуют доработки количество/%</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

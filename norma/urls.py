@@ -9,6 +9,8 @@ urlpatterns = [
     path('proj/<int:pk>/edit/', views.proj_edit, name='proj_edit'),
     path('proj/<int:pk>/delete/', views.proj_delete, name='proj_delete'),
 
+    path('launch/<int:launch_id>/', views.launch_detail, name='launch_detail'),
+    path('test-result/<int:result_id>/update/', views.update_test_result, name='update_test_result'),
     # Кейсы (в корне проекта или в папке любого уровня)
     path('proj/<int:proj_pk>/case/new/', views.case_new, name='case_new'),
     path('proj/<int:proj_pk>/case/<int:case_pk>/', views.case_detail, name='case_detail'),
