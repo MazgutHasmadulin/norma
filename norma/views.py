@@ -63,7 +63,7 @@ def case_new(request, proj_pk):
             return redirect('cases_list', pk=project.pk)
     else:
         form = CaseCreationForm()
-    return render(request, 'norma/case_edit.html', {'form': form, 'project': project, 'case': case})
+    return render(request, 'norma/case_edit.html', {'form': form, 'project': project})
 
 def case_edit(request, proj_pk, case_pk):
     project = get_object_or_404(Proj, pk=proj_pk)
