@@ -1,0 +1,24 @@
+{% extends 'norma/base.html' %}
+{% block content %}
+<h2>Проект: {{ project.name }}</h2>
+<p>{{ project.description }}</p>
+<hr>
+<h3>Корневые папки</h3>
+<ul>
+  {% for folder in root_folders %}
+    <li><a href="{% url 'norma:folder-detail-web' project_pk=project.pk pk=folder.pk %}">{{ folder.name }}</a></li>
+  {% empty %}
+    <li>Нет папок</li>
+  {% endfor %}
+</ul>
+<a class="btn btn-sm btn-primary" href="{% url 'norma:folder-create-web' project_pk=project.pk %}">Добавить корневую папку</a>
+<hr>
+<h3>Кейсы в корне проекта</h3>
+<ul>
+  {% for case in root_test_cases %}
+    <li>{{ case.title }}</li>
+  {% empty %}
+    <li>Нет кейсов</li>
+  {% endfor %}
+</ul>
+{% endblock %}

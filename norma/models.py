@@ -1,31 +1,54 @@
-from django.conf import settings
 from django.db import models
-from django.utils import timezone
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 
-#проекты
-class Proj(models.Model):
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    title = models.CharField(max_length=100)
-    created_date = models.DateTimeField(default=timezone.now)
-    #дата последнего апдейта по кейсам
-    last_update_date = models.DateTimeField(default=timezone.now)
-    #поле ниже под пользователей проекта, чтобы зайдя в проект ПМ или разработчики понимали, к кому можно обращаться
-    #пока что думаю пользователи проекта=авторы кейсов, потому что пмы или разрабы не пишут кейсы, только ответственные за проект тестировщики
-    personel=models.CharField(max_length=1000, default="untitled_author")
+class Project(models.Model):
+    """
+    Проект - корневая папка системы
+    """
+    name = models.CharField(max_length=255, verbose_name="Название проекта")
+    description = models.TextField(blank=True, verbose_name="Описание проекта")
+    author = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        verbose_name="Автор проекта",
+        related_name='projects'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+    level = models.PositiveIntegerField(default=0, verbose_name="Уровень вложенности")
 
-    def update(self):
-        self.last_update_date = timezone.now() #при апдейде проекта ластовой датой апдейта ставится время прожатия кнопки
-        self.save()
+    class Meta:
+        verbose_name = "Проект"
+        verbose_name_plural = "Проекты"
+        ordering = ['-created_at']
 
     def __str__(self):
-        return self.title
- 
-class Folders(models.Model):
-    name = models.CharField(max_length=100)
-    level=models.SmallIntegerField()
-    project=models.ForeignKey(Proj, on_delete=models.CASCADE)
-    #у папки могут быть родители/дети
+        return self.name
+
+    def save(self, *args, **kwargs):
+        # Проект всегда имеет уровень 0
+        self.level = 0
+        super().save(*args, **kwargs)
+
+class Folder(models.Model):
+    """
+    Папка - может содержать другие папки и тест-кейсы
+    """
+    name = models.CharField(max_length=255, verbose_name="Название папки")
+    description = models.TextField(blank=True, verbose_name="Описание папки")
+    author = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        verbose_name="Автор папки",
+        related_name='folders'
+    )
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        verbose_name="Проект",
+        related_name='folders'
+    )
     parent_folder = models.ForeignKey(
         'self',
         on_delete=models.CASCADE,
@@ -33,143 +56,170 @@ class Folders(models.Model):
         related_name='subfolders',
         null=True,
         blank=True
-    ) 
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+    level = models.PositiveIntegerField(default=1, verbose_name="Уровень вложенности")
+
+    class Meta:
+        verbose_name = "Папка"
+        verbose_name_plural = "Папки"
+        ordering = ['name']
 
     def __str__(self):
-        return self.name
+        return f"{self.name} (Уровень: {self.level})"
+
+    def clean(self):
+        # Валидация: папка не может быть своим собственным родителем
+        if self.parent_folder and self.parent_folder.id == self.id:
+            raise ValidationError("Папка не может быть своим собственным родителем")
+        
+        # Валидация: максимальный уровень вложенности
+        if self.level > 10:
+            raise ValidationError("Превышен максимальный уровень вложенности")
+
+    def save(self, *args, **kwargs):
+        # Автоматически вычисляем уровень вложенности
+        if self.parent_folder:
+            self.level = self.parent_folder.level + 1
+        else:
+            self.level = 1
+        
+        # Проверяем валидацию перед сохранением
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+class TestCase(models.Model):
+    """
+    Тест-кейс - может находиться в проекте или папке любого уровня
+    """
+    STATUS_CHOICES = [
+        ('draft', 'Черновик'),
+        ('active', 'Активный'),
+        ('archived', 'Архивный'),
+    ]
     
-class Cases(models.Model):
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    title = models.CharField(max_length=100)
-
-    STATUS_CHOICES = [
-        ('draft' , 'Черновик'),
-        ('on_review' , 'На ревью'),
-        ('actual' , 'Актуальный'),
-        ('correction_needed' , 'Требует доработки')
-    ]
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default='Черновик')
-
-    text = models.TextField()
-    created_date = models.DateTimeField(default=timezone.now)
-    published_date = models.DateTimeField(blank=True, null=True)
-    folder = models.ForeignKey(Folders, on_delete=models.CASCADE, related_name="cases_folder")
-
-    def __str__(self):
-        return self.title
-
-#хранит информацию по запуску в целом
-class Launches(models.Model):
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    title = models.CharField(max_length=100)
-    description = models.TextField()
-    project = models.ForeignKey(Proj, on_delete=models.CASCADE)
-
-    STATUS_CHOICES = [
-        ('in_progress' , 'В процессе'),
-        ('completed' , 'Завершен')
+    PRIORITY_CHOICES = [
+        ('low', 'Низкий'),
+        ('medium', 'Средний'),
+        ('high', 'Высокий'),
+        ('critical', 'Критический'),
     ]
 
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default='В процессе')
-    assignees = models.CharField(max_length=1000, default="default tester")
-    created_date = models.DateTimeField(default=timezone.now)
-    finish_date = models.DateTimeField(default=timezone.now)
-
-    total_cases = models.PositiveIntegerField(default=0, verbose_name="Всего кейсов")
-    passed_cases = models.PositiveIntegerField(default=0, verbose_name="Пройдено")
-    failed_cases = models.PositiveIntegerField(default=0, verbose_name="Провалено")
-    unknown_cases = models.PositiveIntegerField(default=0, verbose_name="Неизвестных")
-    skipped_cases = models.PositiveIntegerField(default=0, verbose_name="Пропущенных")
-    correction_needed_cases = models.PositiveIntegerField(default=0, verbose_name="Требует правки")
-
-    def __str__(self):
-        return f"{self.title} ({self.get_status_display()})"
-
-    def add_test_case(self, test_case):
-        """Добавление тест-кейса в запуск"""
-        TestRunResult.objects.get_or_create(
-            test_run=self,
-            test_case=test_case,
-            defaults={'status': 'not_run'}
-        )
-
-#хранит результаты прохождения и инфу по каждому пройденному кейсу в запуске
-class TestRunResult(models.Model):
-    testCase = models.ForeignKey(Cases, on_delete=models.CASCADE)
-    launch = models.ForeignKey(Launches, on_delete=models.CASCADE, null=True)
-    """
-    Результат выполнения конкретного тест-кейса в рамках запуска
-    """
-    STATUS_CHOICES = [
-        ('passed' , 'успешный'),
-        ('failed' , 'проваленный'),
-        ('unknown' , 'неизвестный'),
-        ('skipped' , 'пропущенный'),
-        ('correction_needed' , 'кейс требует правки')
-    ]
+    title = models.CharField(max_length=500, verbose_name="Заголовок тест-кейса")
+    description = models.TextField(blank=True, verbose_name="Описание тест-кейса")
+    preconditions = models.TextField(blank=True, verbose_name="Предусловия")
+    steps = models.JSONField(verbose_name="Шаги тестирования", default=list)
+    expected_result = models.TextField(verbose_name="Ожидаемый результат")
+    actual_result = models.TextField(blank=True, verbose_name="Фактический результат")
     
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default='not_run',
-        verbose_name="Статус выполнения"
+        default='draft',
+        verbose_name="Статус"
+    )
+    priority = models.CharField(
+        max_length=20,
+        choices=PRIORITY_CHOICES,
+        default='medium',
+        verbose_name="Приоритет"
     )
     
-    # Детали выполнения
-    executed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    executed_at = models.DateTimeField(
-        verbose_name="Дата выполнения",
+    author = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        verbose_name="Автор тест-кейса",
+        related_name='test_cases'
+    )
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        verbose_name="Проект",
+        related_name='test_cases'
+    )
+    folder = models.ForeignKey(
+        Folder,
+        on_delete=models.CASCADE,
+        verbose_name="Папка",
+        related_name='test_cases',
         null=True,
         blank=True
     )
     
-    # Комментарии и приложения
-    comment = models.TextField(blank=True, verbose_name="Комментарий")
-    attachment = models.FileField(
-        upload_to='test_run_attachments/',
-        verbose_name="Приложение",
-        null=True,
-        blank=True
+    # Связь многие-ко-многим для связанных тест-кейсов
+    related_cases = models.ManyToManyField(
+        'self',
+        verbose_name="Связанные тест-кейсы",
+        blank=True,
+        symmetrical=False
     )
-    
-    # Время выполнения (в минутах)
-    execution_time = models.PositiveIntegerField(
-        default=0,
-        verbose_name="Время выполнения (минуты)"
-    )
-    
-    # Связь с дефектом (если тест упал)
-    defect_url = models.URLField(blank=True, verbose_name="Ссылка на дефект")
     
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+    level = models.PositiveIntegerField(default=1, verbose_name="Уровень вложенности")
 
-    # def __str__(self):
-    #     return self.title
+    class Meta:
+        verbose_name = "Тест-кейс"
+        verbose_name_plural = "Тест-кейсы"
+        ordering = ['-created_at']
 
-    # def clean(self):
-    #     # Нельзя установить executed_by без executed_at и наоборот
-    #     if bool(self.executed_by) != bool(self.executed_at):
-    #         raise ValidationError("Поля 'Выполнил' и 'Дата выполнения' должны быть заполнены одновременно")
+    def __str__(self):
+        return f"{self.title} (Приоритет: {self.get_priority_display()})"
 
-    # def save(self, *args, **kwargs):
-    #     # Автоматически устанавливаем executed_at при изменении статуса на выполненный
-    #     if self.status in ['passed', 'failed', 'blocked'] and not self.executed_at:
-    #         self.executed_at = timezone.now()
+    def clean(self):
+        # Валидация: тест-кейс должен принадлежать либо папке, либо проекту напрямую
+        if not self.folder and not self.project:
+            raise ValidationError("Тест-кейс должен принадлежать либо папке, либо проекту")
+
+    def save(self, *args, **kwargs):
+        # Автоматически вычисляем уровень вложенности
+        if self.folder:
+            self.level = self.folder.level + 1
+        else:
+            self.level = 1
         
-    #     # Если статус сброшен на not_run, очищаем executed_at и executed_by
-    #     if self.status == 'not_run':
-    #         self.executed_at = None
-    #         self.executed_by = None
+        # Проверяем валидацию перед сохранением
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def get_full_path(self):
+        """
+        Возвращает полный путь к тест-кейсу в иерархии
+        """
+        path_parts = []
         
-    #     self.full_clean()
-    #     super().save(*args, **kwargs)
+        if self.folder:
+            current_folder = self.folder
+            while current_folder:
+                path_parts.insert(0, current_folder.name)
+                current_folder = current_folder.parent_folder
         
-    #     # Обновляем метрики родительского запуска
-    #     self.test_run.save()
+        path_parts.insert(0, self.project.name)
+        path_parts.append(self.title)
+        
+        return " / ".join(path_parts)
+
+class TestStep(models.Model):
+    """
+    Детальная модель для шагов тест-кейса (опционально, для более сложной структуры)
+    """
+    test_case = models.ForeignKey(
+        TestCase,
+        on_delete=models.CASCADE,
+        verbose_name="Тест-кейс",
+        related_name='test_steps'
+    )
+    step_number = models.PositiveIntegerField(verbose_name="Номер шага")
+    action = models.TextField(verbose_name="Действие")
+    expected_result = models.TextField(verbose_name="Ожидаемый результат")
+    actual_result = models.TextField(blank=True, verbose_name="Фактический результат")
+    
+    class Meta:
+        verbose_name = "Шаг тест-кейса"
+        verbose_name_plural = "Шаги тест-кейса"
+        ordering = ['step_number']
+        unique_together = ['test_case', 'step_number']
+
+    def __str__(self):
+        return f"Шаг {self.step_number} для {self.test_case.title}"

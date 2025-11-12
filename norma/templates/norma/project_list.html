@@ -1,0 +1,105 @@
+{% extends 'norma/base.html' %}
+
+{% block title %}Проекты - QA Хранилище{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Проекты</h1>
+    <a href="{% url 'norma:project-create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Создать проект
+    </a>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<div class="row">
+    {% for project in projects %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">{{ project.name }}</h5>
+                <p class="card-text text-muted">{{ project.description|truncatewords:20 }}</p>
+                <div class="mb-2">
+                    <small class="text-muted">
+                        <i class="bi bi-folder"></i> Папок: {{ project.folders_count }}
+                    </small>
+                </div>
+                <div class="mb-3">
+                    <small class="text-muted">
+                        <i class="bi bi-file-text"></i> Тест-кейсов: {{ project.test_cases_count }}
+                    </small>
+                </div>
+                <div class="mb-3">
+                    <small class="text-muted">
+                        Автор: {{ project.author.username }}
+                    </small>
+                </div>
+                <div class="mb-3">
+                    <small class="text-muted">
+                        Создан: {{ project.created_at|date:"d.m.Y H:i" }}
+                    </small>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <div class="btn-group w-100">
+                    <a href="{% url 'norma:project-detail-web' project.pk %}" 
+                       class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-eye"></i> Просмотр
+                    </a>
+                    <a href="{% url 'norma:project-update' project.pk %}" 
+                       class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-pencil"></i> Редактировать
+                    </a>
+                    <a href="{% url 'norma:project-delete' project.pk %}" 
+                       class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-trash"></i> Удалить
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="text-center py-5">
+            <i class="bi bi-inbox display-1 text-muted"></i>
+            <h3 class="text-muted">Нет проектов</h3>
+            <p class="text-muted">Создайте первый проект для хранения тест-кейсов</p>
+            <a href="{% url 'norma:project-create' %}" class="btn btn-primary">
+                Создать проект
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if is_paginated %}
+<nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Предыдущая</a>
+        </li>
+        {% endif %}
+        
+        {% for num in page_obj.paginator.page_range %}
+        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+        </li>
+        {% endfor %}
+        
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Следующая</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

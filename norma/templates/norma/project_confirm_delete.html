@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}Удалить проект{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0">Удаление проекта</h4>
+            </div>
+            <div class="card-body">
+                <p>Вы уверены, что хотите удалить проект <strong>"{{ object.name }}"</strong>?</p>
+                <p class="text-danger">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Внимание! Это действие нельзя отменить. Будут удалены все папки и тест-кейсы проекта.
+                </p>
+                
+                <ul class="text-muted">
+                    <li>Папок для удаления: {{ object.folders.count }}</li>
+                    <li>Тест-кейсов для удаления: {{ object.test_cases.count }}</li>
+                </ul>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger">Да, удалить</button>
+                        <a href="{% url 'norma:project-list' %}" class="btn btn-secondary">Отмена</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
