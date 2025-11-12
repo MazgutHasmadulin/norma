@@ -7,7 +7,6 @@
         <a href="{% url 'case_new' proj_pk=project.pk %}" class="btn btn-primary">
             + Создать тест-кейс
         </a>
-        <a href="{% url 'folder_new' proj_pk=project.pk %}" class="btn btn-primary">
             + Создать папку
         </a>
         <a href="{% url 'proj_dashboard' pk=project.pk %}" class="btn btn-secondary">
@@ -18,32 +17,16 @@
     <!-- Общая статистика -->
     <div class="row mb-4">
         <div class="col-md-3">
-            <div class="card text-white bg-primary">
-                <div class="card-body">
-                    <h5 class="card-title">{{ folders.count }}</h5>
-                    <p class="card-text">Папок</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
             <div class="card text-white bg-success">
                 <div class="card-body">
-                    <h5 class="card-title">{{ folders.cases.count }}</h5><!--тут надо поправить, не считает-->
+                    <h5 class="card-title">{{ cases.count }}</h5><!--тут надо поправить, не считает-->
                     <p class="card-text">Всего кейсов</p>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Тест-кейсы без папки -->
-    {% if cases_without_folder %}
-    <div class="card mb-4">
-        <div class="card-header bg-warning">
-            <h5 class="mb-0">Тест-кейсы без папки</h5>
-        </div>
-        <div class="card-body">
             <div class="list-group">
-                {% for case in cases_without_folder %}
+                {% for case in cases %}
                 <a href="{% url 'case_detail' proj_pk=project.pk case_pk=case.pk %}" class="list-group-item list-group-item-action">
                     <div class="d-flex w-100 justify-content-between">
                         <h6 class="mb-1">{{ case.title }}</h6>
@@ -57,47 +40,10 @@
                 </a>
                 {% endfor %}
             </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Папки и тест-кейсы -->
-    {% for folder in folders %}
-    <div class="card mb-3">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">
-                <i class="fas fa-folder"></i> <a href="{% url 'folder_detail' proj_pk=project.pk folder_pk=folder.pk %}">{{ folder.name }}</a>
-            </h5>
-            <span class="badge bg-secondary">{{ folder.cases_folder.count }} кейсов</span>
-        </div>
-        <div class="card-body">
-            {% if folder.cases_folder.all %}
-            <div class="list-group">
-                {% for case in folder.cases_folder.all %}
-                <a href="{% url 'case_detail_in_folder' proj_pk=project.pk folder_pk=folder.pk case_pk=case.pk %}" class="list-group-item list-group-item-action">
-                    <div class="d-flex w-100 justify-content-between">
-                        <h6 class="mb-1">{{ case.title }}</h6>
-                        <small class="text-muted">{{ case.created_date|date:"d.m.Y" }}</small>
-                    </div>
-                    <p class="mb-1">{{ case.text|truncatewords:20 }}</p>
-                    <small>
-                        <span class="badge bg-{{ case.status}}">{{ case.get_status_display }}</span>
-                        <span class="text-muted">Автор: {{ case.author.username }}</span>
-                    </small>
-                </a>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p class="text-muted">В этой папке пока нет тест-кейсов</p>
-            {% endif %}
-        </div>
-    </div>
-    {% empty %}
+            <!--тут надо присрать условие, по которому будет показываться блок ниже-->
     <div class="alert alert-info">
         <h4>В проекте пока нет папок с тест-кейсами</h4>
         <p>Создайте первую папку и добавьте тест-кейсы для организации ваших тестов.</p>
-    <a href="{% url 'folder_new' proj_pk=project.pk %}" class="btn btn-primary">Создать папку</a>
     </div>
-    {% endfor %}
 </div>
 {% endblock %}

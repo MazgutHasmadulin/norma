@@ -5,31 +5,7 @@
 {% block content %}
 <h2>Проект: {{ proj.title }}</h2>
 <p>Дата последнего обновления: {{ proj.last_update_date }}</p>
-<hr>
-<h3>Корневые папки</h3>
-<ul>
-  {% for folder in proj.folders_set.all %}
-    {% if not folder.parent_folder %}
-      <li><a href="{% url 'folder_detail' proj_pk=proj.pk folder_pk=folder.pk %}">{{ folder.name }}</a></li>
-    {% endif %}
-  {% empty %}
-    <li>Нет папок</li>
-  {% endfor %}
-</ul>
-<a href="{% url 'folder_new' proj_pk=proj.pk %}">Добавить корневую папку</a>
-<hr>
-<h3>Кейсы в корне проекта</h3>
-<ul>
-  {% for case in proj.cases_set.all %}
-    {% if not case.folder %}
-      <li><a href="{% url 'case_detail' proj_pk=proj.pk case_pk=case.pk %}">{{ case.title }}</a></li>
-    {% endif %}
-  {% empty %}
-    <li>Нет кейсов</li>
-  {% endfor %}
-</ul>
-<a href="{% url 'case_new' proj_pk=proj.pk %}">Добавить кейс в корень</a>
-<hr>
+<a href="{% url 'cases_list' pk=proj.pk %}">Перейти к списку кейсов</a>
 <a href="{% url 'proj_edit' pk=proj.pk %}">Редактировать проект</a> |
 <a href="{% url 'proj_delete' pk=proj.pk %}">Удалить проект</a>
 {% endblock %}

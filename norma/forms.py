@@ -1,5 +1,5 @@
 from django import forms
-from .models import Proj, Cases, Folders
+from .models import Proj, Cases
 
 class ProjCreationForm(forms.ModelForm):
 
@@ -10,9 +10,4 @@ class ProjCreationForm(forms.ModelForm):
 class CaseCreationForm(forms.ModelForm):
     class Meta:
         model=Cases
-        fields = ('author', 'title', 'text', 'folder')
-
-class FolderCreationForm(forms.ModelForm):
-    class Meta:
-        model=Folders
-        fields = ('name','level', 'project', 'parent_folder')
+        fields = ('author', 'title', 'text', 'project')

@@ -20,24 +20,7 @@ class Proj(models.Model):
 
     def __str__(self):
         return self.title
- 
-class Folders(models.Model):
-    name = models.CharField(max_length=100)
-    level=models.SmallIntegerField()
-    project=models.ForeignKey(Proj, on_delete=models.CASCADE)
-    #у папки могут быть родители/дети
-    parent_folder = models.ForeignKey(
-        'self',
-        on_delete=models.CASCADE,
-        verbose_name="Родительская папка",
-        related_name='subfolders',
-        null=True,
-        blank=True
-    ) 
-
-    def __str__(self):
-        return self.name
-    
+     
 class Cases(models.Model):
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
@@ -56,7 +39,7 @@ class Cases(models.Model):
     text = models.TextField()
     created_date = models.DateTimeField(default=timezone.now)
     published_date = models.DateTimeField(blank=True, null=True)
-    folder = models.ForeignKey(Folders, on_delete=models.CASCADE, related_name="cases_folder")
+    project=models.ForeignKey(Proj,on_delete=models.CASCADE, related_name="case_project")
 
     def __str__(self):
         return self.title

@@ -7,12 +7,8 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1>#{{case.id}} {{ case.title }}</h1>
             <div>
-                {% if case.folder %}
-                  <a href="{% url 'folder_detail' proj_pk=case.folder.project.pk folder_pk=case.folder.pk %}" class="btn btn-secondary">← К папке</a>
-                {% else %}
-                  <a href="{% url 'proj_dashboard' pk=case.folder.project.pk %}" class="btn btn-secondary">← К проекту</a>
-                {% endif %}
-                <a href="{% url 'case_edit' proj_pk=case.folder.project.pk case_pk=case.pk %}" class="btn btn-primary">Редактировать</a>
+                <a href="{% url 'cases_list' pk=case.project.pk %}" class="btn btn-secondary">← К списку кейсов</a>
+                <a href="{% url 'case_edit' proj_pk=case.project.pk case_pk=case.pk %}" class="btn btn-primary">Редактировать</a>
             </div>
         </div>
 
@@ -51,11 +47,7 @@
                         </tr>
                         <tr>
                             <td><strong>Проект:</strong></td>
-                            <td>{{ case.folder.project.name }}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Папка:</strong></td>
-                            <td>{{ case.folder.name }}</td>
+                            <td>{{ case.project.name }}</td>
                         </tr>
                         <tr>
                             <td><strong>Автор:</strong></td>
@@ -80,7 +72,7 @@
                 <div class="card-body">
                     <h6>Действия</h6>
                     <div class="d-grid gap-2">
-                        <a href="{% url 'case_edit' proj_pk=case.folder.project.pk case_pk=case.pk %}" class="btn btn-outline-primary btn-sm">
+                        <a href="{% url 'case_edit' proj_pk=case.project.pk case_pk=case.pk %}" class="btn btn-outline-primary btn-sm">
                             Редактировать
                         </a>
                         <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal">
@@ -106,7 +98,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <form method="post" action="{% url 'case_delete' proj_pk=case.folder.project.pk case_pk=case.pk %}">
+                <form method="post" action="{% url 'case_delete' proj_pk=case.project.pk case_pk=case.pk %}">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-danger">Удалить</button>
                 </form>
