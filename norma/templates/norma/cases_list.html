@@ -22,24 +22,9 @@
             <h5 class="mb-0">Создать новый запуск</h5>
         </div>
         <div class="card-body">
-            <form id="launchForm" method="post">
+            <form id="launchForm" method="post" action="">
                 {% csrf_token %}
-                
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="id_name" class="form-label">Название запуска</label>
-                        <input type="text" name="name" class="form-control" id="id_name" placeholder="Введите название запуска" required>
-                    </div>
-                </div>
-                
-                <div class="mb-3">
-                    <label for="id_description" class="form-label">Описание</label>
-                    <textarea name="description" class="form-control" id="id_description" rows="3" placeholder="Описание (необязательно)"></textarea>
-                </div>
-                
-                <!-- Скрытое поле для выбранных кейсов -->
-                <select name="case_ids" id="id_case_ids" multiple style="display: none;"></select>
-                
+                {{form.as_p}}
                 <button type="submit" class="btn btn-success" id="createLaunchBtn" disabled>
                     Создать запуск с <span id="selectedCount">0</span> кейсами
                 </button>
@@ -120,14 +105,11 @@ document.addEventListener('DOMContentLoaded', function() {
         selectedCountSpan.textContent = count;
         createLaunchBtn.disabled = count === 0;
         
-        // Обновляем скрытое поле формы
-        caseIdsField.innerHTML = '';
-        selectedCases.forEach(cb => {
-            const option = document.createElement('option');
-            option.value = cb.value;
-            option.selected = true;
-            caseIdsField.appendChild(option);
-        });
+        // Обновляем скрытое поле формы со строкой ID через запятую
+        const caseIds = selectedCases.map(cb => cb.value).join(',');
+        caseIdsField.value = caseIds;
+        
+        console.log('Case IDs:', caseIds);
         
         // Обновляем состояние "Выбрать все"
         selectAllCheckbox.checked = count === caseCheckboxes.length && count > 0;

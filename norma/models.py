@@ -85,8 +85,8 @@ class Launches(models.Model):
 #хранит результаты прохождения и инфу по каждому пройденному кейсу в запуске
 class TestRunResult(models.Model):
     title=models.CharField(max_length=100, default='Результат')
-    testCase = models.ForeignKey(Cases, on_delete=models.CASCADE)
-    launch = models.ForeignKey(Launches, on_delete=models.CASCADE, null=True)
+    case = models.ForeignKey(Cases, on_delete=models.CASCADE, related_name='test_results')
+    launch = models.ForeignKey(Launches, on_delete=models.CASCADE, related_name='test_results')
     """
     Результат выполнения конкретного тест-кейса в рамках запуска
     """
@@ -95,7 +95,8 @@ class TestRunResult(models.Model):
         ('failed' , 'проваленный'),
         ('unknown' , 'неизвестный'),
         ('skipped' , 'пропущенный'),
-        ('correction_needed' , 'кейс требует правки')
+        ('correction_needed' , 'кейс требует правки'),
+        ('in_progress', 'в процессе')
     ]
     
     status = models.CharField(

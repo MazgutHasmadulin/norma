@@ -100,32 +100,34 @@ def case_delete(request, proj_pk, case_pk):
 def cases_list(request, pk):
     project = get_object_or_404(Proj, pk=pk)
     cases = Cases.objects.filter(project=project).order_by('title')
+
     if request.method == 'POST':
         form = LaunchCreationForm(request.POST)
         if form.is_valid():
             # Создаем запуск
-            launch = Launches.objects.create(
-                project=project,
-                name=form.cleaned_data['name'],
-                description=form.cleaned_data['description'],
-                author=request.user
-            )
+            launch = form.save(commit=False)
+            launch.project = project
+            launch.author = request.user
+            launch.save()
             
-            # Создаем результаты для выбранных кейсов
-            case_ids = form.cleaned_data.get('case_ids', [])
-            if case_ids:
-                cases_to_add = Cases.objects.filter(id__in=case_ids)
-                for case in cases_to_add:
-                    TestRunResult.objects.create(
-                        launch=launch,
-                        case=case
-                    )
-                
-                messages.success(request, f'Запуск "{launch.name}" создан с {len(cases_to_add)} кейсами')
-                return redirect('launch_detail', launch_id=launch.id)
-            else:
-                messages.warning(request, 'Не выбрано ни одного кейса')
-                return redirect('project_cases_list', project_id=project.id)
+            # Добавляем выбранные кейсы
+            case_ids_str = form.cleaned_data.get('case_ids', '')
+            if case_ids_str:
+                case_ids = [int(cid) for cid in case_ids_str.split(',') if cid.strip()]
+                for case_id in case_ids:
+                    try:
+                        case = Cases.objects.get(id=case_id)
+                        TestRunResult.objects.create(
+                            launch=launch,
+                            case=case,
+                            executed_by=request.user,
+                            status='not_run'
+                        )
+                    except Cases.DoesNotExist:
+                        pass
+            
+            messages.success(request, f'Запуск "{launch.title}" создан!')
+            return redirect('launch_detail', launch_id=launch.id)
     else:
         form = LaunchCreationForm()
     
@@ -139,7 +141,7 @@ def cases_list(request, pk):
 def launch_detail(request, launch_id):
     """Детальная страница запуска"""
     launch = get_object_or_404(Launches, id=launch_id)
-    test_results = TestRunResult.objects.filter(launch=launch).select_related('testCase', 'testCase__author')
+    test_results = TestRunResult.objects.filter(launch=launch).select_related('case', 'case__author')
     
     context = {
         'launch': launch,

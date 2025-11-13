@@ -15,10 +15,27 @@ class CaseCreationForm(forms.ModelForm):
 
 
 
-class LaunchCreationForm(forms.Form):
-    name = forms.CharField(max_length=255, required=True)
-    description = forms.CharField(required=False, widget=forms.Textarea)
-    case_ids = forms.MultipleChoiceField(required=False, widget=forms.MultipleHiddenInput)
+class LaunchCreationForm(forms.ModelForm):
+    case_ids = forms.CharField(
+        widget=forms.HiddenInput(),
+        required=True
+    )
+    
+    class Meta:
+        model = Launches
+        fields = ['title', 'description']  # Убедитесь, что эти поля есть в модели Launches
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': 'Введите название запуска',
+                'required': True
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 3, 
+                'placeholder': 'Описание запуска (необязательно)'
+            }),
+        }
 
 
 class TestResultUpdateForm(forms.ModelForm):
