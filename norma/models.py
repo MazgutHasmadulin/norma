@@ -77,9 +77,9 @@ class Launches(models.Model):
     def add_test_case(self, test_case):
         """Добавление тест-кейса в запуск"""
         TestRunResult.objects.get_or_create(
-            test_run=self,
-            test_case=test_case,
-            defaults={'status': 'not_run'}
+            launch=self,
+            case=test_case,
+            defaults={'status': 'in_progress'}
         )
 
 #хранит результаты прохождения и инфу по каждому пройденному кейсу в запуске
@@ -102,7 +102,7 @@ class TestRunResult(models.Model):
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default='not_run',
+        default='in_progress',
         verbose_name="Статус выполнения"
     )
     

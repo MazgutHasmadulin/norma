@@ -59,7 +59,17 @@
                                     <h6 class="mb-1">{{ case.title }}</h6>
                                     <p class="mb-1 text-muted">{{ case.text|truncatewords:30 }}</p>
                                     <small class="text-muted">
-                                        <span class="badge bg-{{ case.status}}">{{ case.status}}</span>
+                                        {% if case.status == 'draft' %}
+                                            <span class="badge bg-secondary">{{ case.get_status_display }}</span>
+                                        {% elif case.status == 'on_review' %}
+                                            <span class="badge bg-warning text-dark">{{ case.get_status_display }}</span>
+                                        {% elif case.status == 'actual' %}
+                                            <span class="badge bg-success">{{ case.get_status_display }}</span>
+                                        {% elif case.status == 'correction_needed' %}
+                                            <span class="badge bg-info text-dark">{{ case.get_status_display }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ case.get_status_display }}</span>
+                                        {% endif %}
                                         Автор: {{ case.author.username }} | 
                                         Создан: {{ case.created_date|date:"d.m.Y" }}
                                     </small>

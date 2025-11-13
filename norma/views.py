@@ -121,7 +121,7 @@ def cases_list(request, pk):
                             launch=launch,
                             case=case,
                             executed_by=request.user,
-                            status='not_run'
+                            status='in_progress'
                         )
                     except Cases.DoesNotExist:
                         pass
@@ -142,10 +142,26 @@ def launch_detail(request, launch_id):
     """Детальная страница запуска"""
     launch = get_object_or_404(Launches, id=launch_id)
     test_results = TestRunResult.objects.filter(launch=launch).select_related('case', 'case__author')
-    
+
+    # Подсчёт статусов для отображения в шапке
+    total_cases = test_results.count()
+    passed_count = test_results.filter(status='passed').count()
+    failed_count = test_results.filter(status='failed').count()
+    in_progress_count = test_results.filter(status='in_progress').count()
+    unknown_count = test_results.filter(status='unknown').count()
+    skipped_count = test_results.filter(status='skipped').count()
+    correction_needed_count = test_results.filter(status='correction_needed').count()
+
     context = {
         'launch': launch,
         'test_results': test_results,
+        'total_cases': total_cases,
+        'passed_count': passed_count,
+        'failed_count': failed_count,
+        'in_progress_count': in_progress_count,
+        'unknown_count': unknown_count,
+        'skipped_count': skipped_count,
+        'correction_needed_count': correction_needed_count,
     }
     return render(request, 'norma/launch_detail.html', context)
 
@@ -154,14 +170,17 @@ def update_test_result(request, result_id):
     """Обновление результата тест-кейса (AJAX)"""
     test_result = get_object_or_404(TestRunResult, id=result_id)
     
-    # Проверяем, что пользователь имеет доступ к этому запуску
-    if test_result.launch.project not in Proj.objects.filter(cases__author=request.user):
+    # Проверяем, что пользователь имеет доступ к этому запуску.
+    # Разрешаем обновление, если пользователь — автор проекта, автор самого кейса или staff/superuser.
+    project = test_result.launch.project
+    case_author = test_result.case.author if hasattr(test_result, 'case') and test_result.case else None
+    if not (request.user == project.author or request.user == case_author or request.user.is_staff or request.user.is_superuser):
         return JsonResponse({'success': False, 'error': 'Нет доступа'})
     
     form = TestResultUpdateForm(request.POST, instance=test_result)
     if form.is_valid():
         result = form.save(commit=False)
-        if result.status != 'not_run' and not result.executed_by:
+        if result.status != 'in_progress' and not result.executed_by:
             result.executed_by = request.user
             result.executed_at = timezone.now()
         result.save()

@@ -4,6 +4,9 @@
 
 {% block content %}
 <div class="container mt-4">
+    <form id="globalCsrfForm" style="display:none">
+        {% csrf_token %}
+    </form>
     <!-- Хлебные крошки -->
 
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -19,12 +22,40 @@
         </a>
     </div>
 
+    <!-- Дополнительные счетчики: Пропущено, Неизвестно, Требует правки -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-secondary">
+                <div class="card-body text-center">
+                    <h4>{{ skipped_count }}</h4>
+                    <p class="mb-0">Пропущено</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-warning">
+                <div class="card-body text-center">
+                    <h4>{{ unknown_count }}</h4>
+                    <p class="mb-0">Неизвестно</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-info">
+                <div class="card-body text-center">
+                    <h4>{{ correction_needed_count }}</h4>
+                    <p class="mb-0">Требует правки</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Статистика запуска -->
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="card text-white bg-primary">
                 <div class="card-body text-center">
-                    <h4>{{ test_results.count }}</h4>
+                    <h4>{{ total_cases }}</h4>
                     <p class="mb-0">Всего кейсов</p>
                 </div>
             </div>
@@ -32,7 +63,7 @@
         <div class="col-md-3">
             <div class="card text-white bg-success">
                 <div class="card-body text-center">
-                    <h4>{{ test_results|length|add:"0" }}</h4>
+                    <h4>{{ passed_count }}</h4>
                     <p class="mb-0">Успешно</p>
                 </div>
             </div>
@@ -40,7 +71,7 @@
         <div class="col-md-3">
             <div class="card text-white bg-danger">
                 <div class="card-body text-center">
-                    <h4>0</h4>
+                    <h4>{{ failed_count }}</h4>
                     <p class="mb-0">Провалено</p>
                 </div>
             </div>
@@ -48,160 +79,129 @@
         <div class="col-md-3">
             <div class="card text-white bg-secondary">
                 <div class="card-body text-center">
-                    <h4>{{ test_results|length|add:"0" }}</h4>
+                    <h4>{{ in_progress_count }}</h4>
                     <p class="mb-0">Не запущено</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Список кейсов в запуске -->
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Тест-кейсы в запуске</h5>
-        </div>
-        <div class="card-body">
-            {% for result in test_results %}
-            <div class="test-case-item mb-4 border-bottom pb-3">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h5 class="mb-1">
-                        <button class="btn btn-sm btn-outline-primary me-2" 
-                                type="button" 
-                                data-bs-toggle="collapse" 
-                                data-bs-target="#caseDetails{{ result.id }}">
-                            <i class="fas fa-chevron-down"></i>
-                        </button>
-                        {{ result.case.title }}
-                    </h5>
-                    <div>
-                        <span class="badge bg-{{ result.status}} me-2" id="statusBadge{{ result.id }}">
-                            {{ result.status }}
-                        </span>
-                        <button class="btn btn-sm btn-outline-secondary" 
-                                type="button"
-                                data-bs-toggle="modal" 
-                                data-bs-target="#statusModal{{ result.id }}">
-                            Изменить статус
-                        </button>
-                    </div>
+    <!-- Список кейсов в запуске (двухколоночный макет: список слева, детали справа) -->
+    <div class="row">
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Тест-кейсы в запуске</h5>
                 </div>
-
-                <!-- Детали кейса (раскрывающиеся) -->
-                <div class="collapse" id="caseDetails{{ result.id }}">
-                    <div class="card card-body bg-light">
-                        <h6>Описание:</h6>
-                        <p>{{ result.case.text|linebreaks }}</p>
-                        
-                        {% if result.comment %}
-                        <h6>Комментарий к результату:</h6>
-                        <p class="text-muted">{{ result.comment }}</p>
-                        {% endif %}
-                        
-                        {% if result.executed_by %}
-                        <small class="text-muted">
-                            Выполнил: {{ result.executed_by.username }} 
-                            {% if result.executed_at %}
-                            ({{ result.executed_at|date:"d.m.Y H:i" }})
-                            {% endif %}
-                        </small>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Модальное окно для изменения статуса -->
-                <div class="modal fade" id="statusModal{{ result.id }}" tabindex="-1">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Изменение статуса: {{ result.case.title }}</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="card-body">
+                    {% if test_results %}
+                    <div class="list-group">
+                        {% for result in test_results %}
+                        <a href="#" class="list-group-item list-group-item-action case-list-item d-flex justify-content-between align-items-start"
+                           data-result-id="{{ result.id }}"
+                           data-status="{{ result.status }}"
+                           data-title="{{ result.case.title|escapejs }}"
+                           data-text="{{ result.case.text|escapejs }}"
+                           data-comment="{{ result.comment|default_if_none:''|escapejs }}"
+                           data-executed-by="{% if result.executed_by %}{{ result.executed_by.username }}{% endif %}"
+                           data-executed-at="{% if result.executed_at %}{{ result.executed_at|date:'d.m.Y H:i' }}{% endif %}">
+                            <div>
+                                <h6 class="mb-1">{{ result.case.title }}</h6>
+                                <small class="text-muted">{% if result.status == 'passed' %}
+                                    <span class="badge bg-success">{{ result.get_status_display }}</span>
+                                {% elif result.status == 'failed' %}
+                                    <span class="badge bg-danger">{{ result.get_status_display }}</span>
+                                {% elif result.status == 'unknown' %}
+                                    <span class="badge bg-warning text-dark">{{ result.get_status_display }}</span>
+                                {% elif result.status == 'skipped' %}
+                                    <span class="badge bg-secondary">{{ result.get_status_display }}</span>
+                                {% elif result.status == 'correction_needed' %}
+                                    <span class="badge bg-info text-dark">{{ result.get_status_display }}</span>
+                                {% elif result.status == 'in_progress' %}
+                                    <span class="badge bg-primary">{{ result.get_status_display }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ result.get_status_display }}</span>
+                                {% endif %}</small>
                             </div>
-                            <form class="test-result-form" data-result-id="{{ result.id }}">
-                                <div class="modal-body">
-                                    <div class="mb-3">
-                                        <label class="form-label">Статус выполнения</label>
-                                        <select class="form-select" name="status" required>
-                                            <option value="not_run" {% if result.status == 'not_run' %}selected{% endif %}>Не запущен</option>
-                                            <option value="passed" {% if result.status == 'passed' %}selected{% endif %}>Успешно</option>
-                                            <option value="failed" {% if result.status == 'failed' %}selected{% endif %}>Провален</option>
-                                            <option value="unknown" {% if result.status == 'unknown' %}selected{% endif %}>Неизвестно</option>
-                                            <option value="needs_fix" {% if result.status == 'needs_fix' %}selected{% endif %}>Требует правки</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Комментарий</label>
-                                        <textarea class="form-control" name="comment" rows="3" placeholder="Оставьте комментарий к результату...">{{ result.comment }}</textarea>
-                                    </div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                                    <button type="submit" class="btn btn-primary">Сохранить</button>
-                                </div>
-                            </form>
-                        </div>
+                            <small class="text-muted">{{ result.case.author.username }}</small>
+                        </a>
+                        {% endfor %}
                     </div>
+                    {% else %}
+                    <p class="text-muted">В этом запуске пока нет тест-кейсов.</p>
+                    {% endif %}
                 </div>
             </div>
-            {% empty %}
-            <p class="text-muted">В этом запуске пока нет тест-кейсов.</p>
-            {% endfor %}
+        </div>
+
+        <div class="col-md-7">
+            <div id="caseDetailPane" class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Информация о выбранном кейсе</h5>
+                </div>
+                <div class="card-body" id="caseDetailContent">
+                    <p class="text-muted">Выберите тест-кейс слева, чтобы увидеть детали и управлять статусом.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для выбора неудачного статуса -->
+    <div class="modal fade" id="failStatusModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Выберите статус для неуспешного выполнения</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="failStatusForm">
+                    <div class="modal-body">
+                        <input type="hidden" name="result_id" id="failResultId" />
+                        <div class="mb-3">
+                            <label class="form-label">Статус</label>
+                            <select class="form-select" name="status" id="failStatusSelect" required>
+                                <option value="failed">Провален</option>
+                                <option value="unknown">Неизвестно</option>
+                                <option value="skipped">Пропущен</option>
+                                <option value="correction_needed">Требует правки</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Комментарий (необязательно)</label>
+                            <textarea class="form-control" name="comment" id="failComment" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-danger">Сохранить статус</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Обработка форм изменения статуса
-    document.querySelectorAll('.test-result-form').forEach(form => {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const resultId = this.dataset.resultId;
-            const formData = new FormData(this);
-            
-            fetch(`/test-result/${resultId}/update/`, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                },
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Обновляем бейдж статуса
-                    const statusBadge = document.getElementById(`statusBadge${resultId}`);
-                    statusBadge.textContent = data.status_display;
-                    statusBadge.className = `badge bg-${getStatusColor(data.status)} me-2`;
-                    
-                    // Закрываем модальное окно
-                    const modal = bootstrap.Modal.getInstance(document.getElementById(`statusModal${resultId}`));
-                    modal.hide();
-                    
-                    // Показываем уведомление
-                    showAlert('Статус успешно обновлен', 'success');
-                } else {
-                    showAlert('Ошибка при обновлении статуса', 'danger');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showAlert('Ошибка при обновлении статуса', 'danger');
-            });
-        });
-    });
-    
+    // helper: get csrf token from hidden form rendered by {% csrf_token %}
+    function getCsrfToken() {
+        const el = document.querySelector('#globalCsrfForm input[name="csrfmiddlewaretoken"]');
+        return el ? el.value : '';
+    }
+
     function getStatusColor(status) {
         const colorMap = {
-            'not_run': 'secondary',
+            'in_progress': 'secondary',
             'passed': 'success',
             'failed': 'danger',
             'unknown': 'warning',
-            'needs_fix': 'info'
+            'skipped': 'secondary',
+            'correction_needed': 'info',
+            'in_progress': 'primary'
         };
         return colorMap[status] || 'secondary';
     }
-    
+
     function showAlert(message, type) {
         const alertDiv = document.createElement('div');
         alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
@@ -210,11 +210,137 @@ document.addEventListener('DOMContentLoaded', function() {
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
         document.querySelector('.container').prepend(alertDiv);
-        
-        setTimeout(() => {
-            alertDiv.remove();
-        }, 5000);
+        setTimeout(() => { alertDiv.remove(); }, 5000);
     }
+
+    // Обработчик клика по элементу списка — показываем детали в правой панели
+    document.querySelectorAll('.case-list-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            const rid = this.dataset.resultId;
+            const title = this.dataset.title || '';
+            const text = this.dataset.text || '';
+            const status = this.dataset.status || '';
+            const comment = this.dataset.comment || '';
+            const executedBy = this.dataset.executedBy || '';
+            const executedAt = this.dataset.executedAt || '';
+
+            const detail = document.getElementById('caseDetailContent');
+            detail.innerHTML = `
+                <h4>${title}</h4>
+                <p><span id="detailStatusBadge" class="badge bg-${getStatusColor(status)}">${status}</span></p>
+                <hr />
+                <h6>Описание</h6>
+                <div class="mb-3">${text.replace(/\n/g, '<br />')}</div>
+                <div class="mb-2 text-muted">${comment ? '<strong>Комментарий:</strong> ' + comment : ''}</div>
+                <div class="mb-3 text-muted">${executedBy ? 'Выполнил: ' + executedBy + (executedAt ? ' ('+ executedAt +')' : '') : ''}</div>
+                <div>
+                    <button class="btn btn-success me-2" id="markPassedBtn">Успешно</button>
+                    <button class="btn btn-danger" id="markFailedBtn">Неудачно</button>
+                </div>
+            `;
+
+            // attach handlers
+            document.getElementById('markPassedBtn').addEventListener('click', function() {
+                // mark as passed via AJAX
+                const csrftoken = getCsrfToken();
+                const fd = new FormData();
+                fd.append('status', 'passed');
+                fd.append('comment', '');
+
+                fetch(`/test-result/${rid}/update/`, {
+                    method: 'POST',
+                    body: fd,
+                    headers: { 'X-CSRFToken': csrftoken }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        // update list badge
+                        const listItem = document.querySelector(`.case-list-item[data-result-id="${rid}"]`);
+                        if (listItem) {
+                            const badge = listItem.querySelector('span.badge');
+                            if (badge) {
+                                badge.textContent = data.status_display || data.status;
+                                badge.className = `badge bg-${getStatusColor(data.status)}`;
+                            }
+                            // обновим data-status, чтобы при переключении статусы не сбрасывались
+                            listItem.dataset.status = data.status;
+                        }
+                        // update detail badge
+                        const detailBadge = document.getElementById('detailStatusBadge');
+                        if (detailBadge) {
+                            detailBadge.textContent = data.status_display || data.status;
+                            detailBadge.className = `badge bg-${getStatusColor(data.status)}`;
+                        }
+                        showAlert('Кейс помечен как успешно пройден', 'success');
+                    } else {
+                        showAlert('Ошибка при обновлении статуса', 'danger');
+                    }
+                })
+                .catch(err => { console.error(err); showAlert('Ошибка при обновлении статуса', 'danger'); });
+            });
+
+            document.getElementById('markFailedBtn').addEventListener('click', function() {
+                // open modal to select fail status
+                const failModal = new bootstrap.Modal(document.getElementById('failStatusModal'));
+                document.getElementById('failResultId').value = rid;
+                document.getElementById('failComment').value = comment || '';
+                failModal.show();
+            });
+        });
+    });
+
+    // handle fail modal submit
+    document.getElementById('failStatusForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const rid = document.getElementById('failResultId').value;
+        const status = document.getElementById('failStatusSelect').value;
+        const comment = document.getElementById('failComment').value || '';
+        const csrftoken = getCsrfToken();
+
+        const fd = new FormData();
+        fd.append('status', status);
+        fd.append('comment', comment);
+
+        fetch(`/test-result/${rid}/update/`, {
+            method: 'POST',
+            body: fd,
+            headers: { 'X-CSRFToken': csrftoken }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                // update list badge
+                const listItem = document.querySelector(`.case-list-item[data-result-id="${rid}"]`);
+                if (listItem) {
+                    const badge = listItem.querySelector('span.badge');
+                    if (badge) {
+                        badge.textContent = data.status_display || data.status;
+                        badge.className = `badge bg-${getStatusColor(data.status)}`;
+                    }
+                    listItem.dataset.status = data.status;
+                }
+                // update detail badge if visible
+                const detailBadge = document.getElementById('detailStatusBadge');
+                if (detailBadge) {
+                    detailBadge.textContent = data.status_display || data.status;
+                    detailBadge.className = `badge bg-${getStatusColor(data.status)}`;
+                }
+
+                // hide modal
+                const modalEl = document.getElementById('failStatusModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+
+                showAlert('Статус успешно обновлён', 'success');
+            } else {
+                showAlert('Ошибка при обновлении статуса', 'danger');
+            }
+        })
+        .catch(err => { console.error(err); showAlert('Ошибка при обновлении статуса', 'danger'); });
+    });
+
 });
 </script>
 {% endblock %}
