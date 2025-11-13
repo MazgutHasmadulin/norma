@@ -2,11 +2,76 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h1>Проект: {{ project.title }}</h1>
-    <p>Дата последнего обновления: {{ proj.last_update_date }}</p>
-    <a href="{% url 'proj_edit' pk=project.id %}">Редактировать проект</a>
-    <a href="{% url 'proj_delete' pk=project.id %}">Удалить проект</a>
+    <div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Проект: {{ project.title }}</h1>
+            <p class="text-muted mb-0">Дата последнего обновления: {{ project.last_update_date|date:"d.m.Y H:i" }}</p>
+        </div>
+        <div>
+            <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#projEditModal">
+                ✎ Редактировать проект
+            </button>
+            <button type="button" class="btn btn-danger ms-2" data-bs-toggle="modal" data-bs-target="#projDeleteModal">
+                🗑 Удалить проект
+            </button>
+        </div>
+    </div>
     
+    <!-- Модальное окно редактирования проекта -->
+    <div class="modal fade" id="projEditModal" tabindex="-1" aria-labelledby="projEditModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="projEditModalLabel">Редактировать проект</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="projEditForm" method="post" action="{% url 'proj_edit' pk=project.id %}">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="proj_title" class="form-label">Название проекта</label>
+                            <input type="text" id="proj_title" name="title" class="form-control" value="{{ project.title }}" required maxlength="100">
+                        </div>
+                        <div class="mb-3">
+                            <label for="proj_personel" class="form-label">Персонал / контакты</label>
+                            <textarea id="proj_personel" name="personel" class="form-control" rows="2">{{ project.personel }}</textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-primary" id="projSaveBtn">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно подтверждения удаления проекта -->
+    <div class="modal fade" id="projDeleteModal" tabindex="-1" aria-labelledby="projDeleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="projDeleteForm" method="post" action="{% url 'proj_delete' pk=project.id %}">
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="projDeleteModalLabel">Удалить проект</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Для подтверждения удаления введите слово <strong>Удалить</strong> в поле ниже.</p>
+                        <div class="mb-3">
+                            <input type="text" id="projDeleteConfirmInput" name="confirm_text" class="form-control" placeholder="Введите 'Удалить'">
+                            <div class="invalid-feedback" id="projDeleteFeedback">Нужно ввести точное слово «Удалить».</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="submit" class="btn btn-danger" id="projDeleteBtn" disabled>Удалить проект</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <div class="row">
         <div class="col-md-6">
@@ -14,11 +79,16 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Запуски: {{ launches.count }}</h5>
                     
-                    <a href="{% url 'cases_list' pk=project.id %}" class="btn btn-primary btn-sm">
-                        Создать запуск
-                    </a>
+                    <div>
+                        <a href="{% url 'launches_list' proj_pk=project.id %}" class="btn btn-outline-secondary btn-sm">
+                            Все запуски
+                        </a>
+                        <a href="{% url 'cases_list' pk=project.id %}" class="btn btn-primary btn-sm ms-2">
+                            Создать запуск
+                        </a>
+                    </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body" style="max-height: 500px; overflow-y: auto;">
                     {% for launch in launches %}
                     <div class="d-flex justify-content-between align-items-center border-bottom py-2">
                         <div>
@@ -26,7 +96,7 @@
                                 {{ launch.title }}
                             </a>
                             <small class="d-block text-muted">
-                                Создан: {{ launch.created_at|date:"d.m.Y" }} | 
+                                Создан: {{ launch.created_date|date:"d.m.Y" }} | 
                                 Кейсов: {{ launch.test_results.count }}
                             </small>
                         </div>
@@ -39,22 +109,168 @@
                     {% endfor %}
                 </div>
             </div>
+        </div>
+        <div class="col-md-6">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Всего кейсов: {{ cases.count }}</h5>
+                    <h5 class="mb-0">Всего кейсов: {{ total_cases }}</h5>
                     
                     <a href="{% url 'cases_list' pk=project.id %}" class="btn btn-primary btn-sm">
                         Открыть список кейсов
                     </a>
                 </div>
                 <div class="card-body">
-                    <p>Черновик количество/%</p>
-                    <p>На ревью количество/%</p>
-                    <p>Актуальные количество/%</p>
-                    <p>Требуют доработки количество/%</p>
+                    {% if total_cases > 0 %}
+                    <div class="mb-3">
+                        <!-- Черновик -->
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-secondary">Черновик</span>
+                            <span>{{ draft_cases }} ({{ draft_percentage }}%)</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 6px;">
+                            {# stylelint-disable #}
+                            <div class="progress-bar bg-secondary" role="progressbar" aria-valuenow="{{ draft_percentage }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ draft_percentage|default:0 }}%;"></div>
+                            {# stylelint-enable #}
+                        </div>
+
+                        <!-- На ревью -->
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-warning text-dark">На ревью</span>
+                            <span>{{ review_cases }} ({{ review_percentage }}%)</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 6px;">
+                            {# stylelint-disable #}
+                            <div class="progress-bar bg-warning" role="progressbar" aria-valuenow="{{ review_percentage }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ review_percentage|default:0 }}%;"></div>
+                            {# stylelint-enable #}
+                        </div>
+
+                        <!-- Актуальные -->
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-success">Актуальные</span>
+                            <span>{{ actual_cases }} ({{ actual_percentage }}%)</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 6px;">
+                            {# stylelint-disable #}
+                            <div class="progress-bar bg-success" role="progressbar" aria-valuenow="{{ actual_percentage }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ actual_percentage|default:0 }}%;"></div>
+                            {# stylelint-enable #}
+                        </div>
+
+                        <!-- Требуют доработки -->
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-danger">Требуют доработки</span>
+                            <span>{{ correction_cases }} ({{ correction_percentage }}%)</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            {# stylelint-disable #}
+                            <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="{{ correction_percentage }}" aria-valuemin="0" aria-valuemax="100" style="width: {{ correction_percentage|default:0 }}%;"></div>
+                            {# stylelint-enable #}
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">Кейсов еще не добавлено</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const projEditForm = document.getElementById('projEditForm');
+        const projEditModalEl = document.getElementById('projEditModal');
+        if (projEditForm) {
+            projEditForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const form = this;
+                const formData = new FormData(form);
+                fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        // Обновляем заголовок и дату обновления на странице
+                        const titleEl = document.querySelector('h1');
+                        if (titleEl) titleEl.textContent = 'Проект: ' + data.title;
+                        const dateEl = document.querySelector('.text-muted.mb-0');
+                        if (dateEl) dateEl.textContent = 'Дата последнего обновления: ' + data.last_update_date;
+
+                        // Закрываем модаль
+                        const modal = bootstrap.Modal.getInstance(projEditModalEl);
+                        if (modal) modal.hide();
+                    } else {
+                        alert('Ошибка: ' + (data.error || 'Не удалось сохранить проект'));
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Ошибка при сохранении проекта');
+                });
+            });
+        }
+
+        // Delete modal logic: enable submit only when exact word «Удалить» entered
+        const projDeleteForm = document.getElementById('projDeleteForm');
+        const projDeleteInput = document.getElementById('projDeleteConfirmInput');
+        const projDeleteBtn = document.getElementById('projDeleteBtn');
+        const projDeleteFeedback = document.getElementById('projDeleteFeedback');
+
+        if (projDeleteInput && projDeleteForm && projDeleteBtn) {
+            projDeleteInput.addEventListener('input', function () {
+                const val = this.value.trim();
+                if (val === 'Удалить') {
+                    projDeleteBtn.disabled = false;
+                    projDeleteInput.classList.remove('is-invalid');
+                    if (projDeleteFeedback) projDeleteFeedback.style.display = 'none';
+                } else {
+                    projDeleteBtn.disabled = true;
+                }
+            });
+
+            projDeleteForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const inputVal = projDeleteInput.value.trim();
+                if (inputVal !== 'Удалить') {
+                    projDeleteInput.classList.add('is-invalid');
+                    if (projDeleteFeedback) projDeleteFeedback.style.display = 'block';
+                    return;
+                }
+
+                // Disable button and show spinner
+                projDeleteBtn.disabled = true;
+                const originalText = projDeleteBtn.innerHTML;
+                projDeleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Удаляю...';
+
+                const formData = new FormData(this);
+                fetch(this.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = data.redirect;
+                    } else {
+                        alert('Ошибка: ' + (data.error || 'Не удалось удалить проект'));
+                        projDeleteBtn.disabled = false;
+                        projDeleteBtn.innerHTML = originalText;
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Ошибка при удалении проекта');
+                    projDeleteBtn.disabled = false;
+                    projDeleteBtn.innerHTML = originalText;
+                });
+            });
+        }
+    });
+    </script>
 {% endblock %}

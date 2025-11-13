@@ -1,88 +1,259 @@
-<!-- templates/cases/project_cases_list.html -->
 {% extends 'norma/base.html' %}
 {% load static %}
 
+<style>
+    .case-item.active {
+        background-color: #0d6efd !important;
+        color: white !important;
+    }
+    
+    .case-item.active h6,
+    .case-item.active p,
+    .case-item.active small,
+    .case-item.active .text-muted {
+        color: white !important;
+    }
+    
+    .case-item.active .badge {
+        opacity: 0.9;
+        color: white !important;
+    }
+    
+    .case-item.active .form-check-label {
+        color: white !important;
+    }
+</style>
+
 {% block content %}
-<div class="container mt-4">
+<div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Тест-кейсы проекта: {{ project.title }}</h1>
         <div>
             <a href="{% url 'proj_dashboard' pk=project.pk %}" class="btn btn-secondary">
                 ← Назад к проекту
             </a>
-            <a href="{% url 'case_new' proj_pk=project.pk %}" class="btn btn-primary">
+            <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#caseModal">
                 + Создать тест-кейс
-            </a>
+            </button>
+            <button type="button" class="btn btn-success" id="createLaunchBtnOpen" data-bs-toggle="modal" data-bs-target="#launchModal">
+                + Создать запуск (<span id="selectedCountHeader">0</span>)
+            </button>
         </div>
     </div>
 
-    <!-- Форма создания запуска -->
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">Создать новый запуск</h5>
+    <div class="row">
+        <!-- Левая колонна: Доступные кейсы -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Доступные тест-кейсы</h5>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="selectAll">
+                        <label class="form-check-label" for="selectAll">
+                            Выбрать все
+                        </label>
+                    </div>
+                </div>
+                <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                    {% if cases %}
+                    <div class="list-group">
+                        {% for case in cases %}
+                        <div class="list-group-item list-group-item-action case-item" data-case-id="{{ case.id }}" data-proj-pk="{{ project.pk }}" style="cursor: pointer;">
+                            <div class="form-check d-flex align-items-start">
+                                <input class="form-check-input case-checkbox me-3 mt-1" 
+                                       type="checkbox" 
+                                       value="{{ case.id }}" 
+                                       id="case_{{ case.id }}" 
+                                       onclick="event.stopPropagation();">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">{{ case.title }}</h6>
+                                    <p class="mb-1 text-muted small">{{ case.text|truncatewords:20 }}</p>
+                                    <small class="text-muted">
+                                        {% if case.status == 'draft' %}
+                                            <span class="badge bg-secondary" data-status="draft">{{ case.get_status_display }}</span>
+                                        {% elif case.status == 'on_review' %}
+                                            <span class="badge bg-warning text-dark" data-status="on_review">{{ case.get_status_display }}</span>
+                                        {% elif case.status == 'actual' %}
+                                            <span class="badge bg-success" data-status="actual">{{ case.get_status_display }}</span>
+                                        {% elif case.status == 'correction_needed' %}
+                                            <span class="badge bg-info text-dark" data-status="correction_needed">{{ case.get_status_display }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary" data-status="draft">{{ case.get_status_display }}</span>
+                                        {% endif %}
+                                        | {{ case.author.username }} | {{ case.created_date|date:"d.m.Y" }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">В проекте пока нет тест-кейсов.</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
-        <div class="card-body">
+
+        <!-- Правая колонна: детали выбранного кейса -->
+        <div class="col-md-6">
+            <div class="card" id="caseDetailsCard" style="display: none;">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0" id="caseDetailTitle">Выберите кейс</h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" id="editCaseBtn" class="btn btn-outline-primary" style="display: none;" data-bs-toggle="modal" data-bs-target="#editCaseModal">
+                            ✎ Редактировать
+                        </button>
+                        <button type="button" id="changeStatusBtn" class="btn btn-outline-warning" style="display: none;" data-bs-toggle="modal" data-bs-target="#statusModal">
+                            ⟳ Статус
+                        </button>
+                        <button type="button" id="deleteCaseBtn" class="btn btn-outline-danger" style="display: none;">
+                            🗑 Удалить
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Статус</label>
+                        <div>
+                            <span id="caseDetailStatus" class="badge bg-secondary">—</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Описание</label>
+                        <p id="caseDetailText" class="text-dark">—</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Автор</label>
+                        <p id="caseDetailAuthor" class="text-dark">—</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Дата создания</label>
+                        <p id="caseDetailDate" class="text-dark">—</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info" id="noSelectionAlert" role="alert">
+                <p class="mb-0">Выберите тест-кейс из списка слева для просмотра деталей</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для создания запуска -->
+<div class="modal fade" id="launchModal" tabindex="-1" aria-labelledby="launchModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="launchModalLabel">Создать новый запуск</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
             <form id="launchForm" method="post" action="">
                 {% csrf_token %}
-                {{form.as_p}}
-                <button type="submit" class="btn btn-success" id="createLaunchBtn" disabled>
-                    Создать запуск с <span id="selectedCount">0</span> кейсами
-                </button>
+                <div class="modal-body">
+                    {{form.as_p}}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-success" id="createLaunchBtn" disabled>
+                        Создать запуск с <span id="selectedCount">0</span> кейсами
+                    </button>
+                </div>
             </form>
         </div>
     </div>
+</div>
 
-    <!-- Список кейсов с чекбоксами -->
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Доступные тест-кейсы</h5>
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="selectAll">
-                <label class="form-check-label" for="selectAll">
-                    Выбрать все
-                </label>
+<!-- Модальное окно для создания/редактирования кейса -->
+<div class="modal fade" id="caseModal" tabindex="-1" aria-labelledby="caseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="caseModalLabel">Создать тест-кейс</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            <form id="caseForm" method="post" action="{% url 'case_new' proj_pk=project.pk %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="case_title_field" class="form-label">Название</label>
+                        <input type="text" class="form-control" id="case_title_field" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="case_text_field" class="form-label">Описание</label>
+                        <textarea class="form-control" id="case_text_field" name="text" rows="4" required></textarea>
+                    </div>
+                    <input type="hidden" name="author" value="{{ request.user.id }}">
+                    <input type="hidden" name="project" value="{{ project.id }}">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Создать кейс</button>
+                </div>
+            </form>
         </div>
-        <div class="card-body">
-            {% if cases %}
-            <div class="list-group">
-                {% for case in cases %}
-                <div class="list-group-item">
-                    <div class="form-check d-flex align-items-start">
-                        <input class="form-check-input case-checkbox me-3 mt-1" 
-                               type="checkbox" 
-                               value="{{ case.id }}" 
-                               id="case_{{ case.id }}">
-                        <div class="flex-grow-1">
-                            <label class="form-check-label w-100" for="case_{{ case.id }}">
-                                <a href="{% url 'case_detail' proj_pk=project.pk case_pk=case.pk %}" class="text-decoration-none text-dark">
-                                    <h6 class="mb-1">{{ case.title }}</h6>
-                                    <p class="mb-1 text-muted">{{ case.text|truncatewords:30 }}</p>
-                                    <small class="text-muted">
-                                        {% if case.status == 'draft' %}
-                                            <span class="badge bg-secondary">{{ case.get_status_display }}</span>
-                                        {% elif case.status == 'on_review' %}
-                                            <span class="badge bg-warning text-dark">{{ case.get_status_display }}</span>
-                                        {% elif case.status == 'actual' %}
-                                            <span class="badge bg-success">{{ case.get_status_display }}</span>
-                                        {% elif case.status == 'correction_needed' %}
-                                            <span class="badge bg-info text-dark">{{ case.get_status_display }}</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">{{ case.get_status_display }}</span>
-                                        {% endif %}
-                                        Автор: {{ case.author.username }} | 
-                                        Создан: {{ case.created_date|date:"d.m.Y" }}
-                                    </small>
-                                </a>
-                            </label>
-                        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для редактирования кейса -->
+<div class="modal fade" id="editCaseModal" tabindex="-1" aria-labelledby="editCaseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editCaseModalLabel">Редактировать тест-кейс</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editCaseForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="id_edit_title" class="form-label">Название</label>
+                        <input type="text" class="form-control" id="id_edit_title" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_edit_text" class="form-label">Описание</label>
+                        <textarea class="form-control" id="id_edit_text" name="text" rows="4" required></textarea>
                     </div>
                 </div>
-                {% endfor %}
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для смены статуса -->
+<div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="statusModalLabel">Изменить статус кейса</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            {% else %}
-            <p class="text-muted">В проекте пока нет тест-кейсов.</p>
-            {% endif %}
+            <form id="statusForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="statusSelect" class="form-label">Выберите новый статус</label>
+                        <select class="form-select" id="statusSelect" name="status" required>
+                            <option value="">-- Выберите статус --</option>
+                            <option value="draft">Черновик</option>
+                            <option value="on_review">На ревью</option>
+                            <option value="actual">Актуальный</option>
+                            <option value="correction_needed">Требует доработки</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary" id="saveStatusBtn">Сохранить</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -96,13 +267,125 @@ document.addEventListener('DOMContentLoaded', function() {
     const caseIdsField = document.getElementById('id_case_ids');
     const launchForm = document.getElementById('launchForm');
     
-    console.log('Elements found:', {
-        selectAllCheckbox,
-        caseCheckboxes: caseCheckboxes.length,
-        selectedCountSpan,
-        createLaunchBtn,
-        caseIdsField,
-        launchForm
+    const caseItems = document.querySelectorAll('.case-item');
+    const caseDetailsCard = document.getElementById('caseDetailsCard');
+    const noSelectionAlert = document.getElementById('noSelectionAlert');
+    
+    const editCaseBtn = document.getElementById('editCaseBtn');
+    const changeStatusBtn = document.getElementById('changeStatusBtn');
+    const deleteCaseBtn = document.getElementById('deleteCaseBtn');
+    
+    const statusForm = document.getElementById('statusForm');
+    const statusSelect = document.getElementById('statusSelect');
+    const saveStatusBtn = document.getElementById('saveStatusBtn');
+    
+    const caseForm = document.getElementById('caseForm');
+    const editCaseForm = document.getElementById('editCaseForm');
+    
+    // Проверяем, что форма существует
+    if (!caseForm) {
+        console.error('Case form not found');
+        return;
+    }
+    
+    let selectedCaseId = null;
+    let selectedProjPk = null;
+    let casesList = {};
+    
+    const statusMap = {
+        'draft': 'Черновик',
+        'on_review': 'На ревью',
+        'actual': 'Актуальный',
+        'correction_needed': 'Требует доработки'
+    };
+    
+    const statusColors = {
+        'draft': 'bg-secondary',
+        'on_review': 'bg-warning text-dark',
+        'actual': 'bg-success',
+        'correction_needed': 'bg-info text-dark'
+    };
+    
+    // Собираем данные всех кейсов
+    // Функция для декодирования HTML-сущностей
+    function decodeHtmlEntities(text) {
+        const textarea = document.createElement('textarea');
+        textarea.innerHTML = text;
+        return textarea.value;
+    }
+    
+    caseItems.forEach(item => {
+        const caseId = item.dataset.caseId;
+        const projPk = item.dataset.projPk;
+        const statusEl = item.querySelector('.badge');
+        const statusKey = statusEl.dataset.status;
+        const titleEl = item.querySelector('h6');
+        const textEl = item.querySelector('p');
+        
+        casesList[caseId] = {
+            id: caseId,
+            proj_pk: projPk,
+            title: decodeHtmlEntities(titleEl.innerHTML),  // Декодируем HTML-сущности
+            text: textEl.textContent,
+            status: statusKey,
+            status_display: statusEl.textContent,
+            author: item.querySelector('small').textContent.split('|')[1]?.trim() || 'Unknown',
+            date: item.querySelector('small').textContent.split('|')[2]?.trim() || '—',
+            element: item
+        };
+    });
+    
+    // Функция для отображения деталей кейса
+    function showCaseDetails(caseId) {
+        const caseData = casesList[caseId];
+        if (!caseData) return;
+        
+        selectedCaseId = caseId;
+        selectedProjPk = caseData.proj_pk;
+        
+        // Обновляем содержимое панели деталей
+        // Используем textContent для безопасного отображения (сущности уже декодированы)
+        document.getElementById('caseDetailTitle').textContent = caseData.title;
+        // Преобразуем \n в <br> для правильного отображения абзацев
+        const formattedText = caseData.text.replace(/\n/g, '<br>');
+        document.getElementById('caseDetailText').innerHTML = formattedText;
+        document.getElementById('caseDetailAuthor').textContent = caseData.author;
+        document.getElementById('caseDetailDate').textContent = caseData.date;
+        
+        // Обновляем статус с правильной раскраской
+        const statusBadge = document.getElementById('caseDetailStatus');
+        statusBadge.textContent = caseData.status_display;
+        statusBadge.className = 'badge ' + statusColors[caseData.status];
+        statusSelect.value = caseData.status;
+        
+        // Показываем карту деталей
+        caseDetailsCard.style.display = 'block';
+        noSelectionAlert.style.display = 'none';
+        
+        // Показываем кнопки действий
+        editCaseBtn.style.display = 'inline-block';
+        // Заполняем форму редактирования при клике на кнопку
+        editCaseBtn.onclick = function(e) {
+            e.preventDefault();
+            document.getElementById('id_edit_title').value = caseData.title;
+            document.getElementById('id_edit_text').value = caseData.text;
+            editCaseForm.action = `/proj/${selectedProjPk}/case/${caseId}/edit/`;
+        };
+        changeStatusBtn.style.display = 'inline-block';
+        deleteCaseBtn.style.display = 'inline-block';
+        
+        // Подсвечиваем выбранный элемент
+        caseItems.forEach(item => item.classList.remove('active'));
+        caseData.element.classList.add('active');
+    }
+    
+    // Обработчик клика на кейс
+    caseItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            if (!e.target.closest('.form-check-input')) {
+                showCaseDetails(this.dataset.caseId);
+            }
+        });
     });
     
     // Функция обновления счетчика выбранных кейсов
@@ -110,25 +393,19 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedCases = Array.from(caseCheckboxes).filter(cb => cb.checked);
         const count = selectedCases.length;
         
-        console.log('Selected cases:', count);
-        
         selectedCountSpan.textContent = count;
+        document.getElementById('selectedCountHeader').textContent = count;
         createLaunchBtn.disabled = count === 0;
         
-        // Обновляем скрытое поле формы со строкой ID через запятую
         const caseIds = selectedCases.map(cb => cb.value).join(',');
         caseIdsField.value = caseIds;
         
-        console.log('Case IDs:', caseIds);
-        
-        // Обновляем состояние "Выбрать все"
         selectAllCheckbox.checked = count === caseCheckboxes.length && count > 0;
         selectAllCheckbox.indeterminate = count > 0 && count < caseCheckboxes.length;
     }
     
     // Обработчик для "Выбрать все"
     selectAllCheckbox.addEventListener('change', function() {
-        console.log('Select all changed:', this.checked);
         caseCheckboxes.forEach(cb => {
             cb.checked = this.checked;
         });
@@ -138,7 +415,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Обработчики для отдельных чекбоксов
     caseCheckboxes.forEach(cb => {
         cb.addEventListener('change', function() {
-            console.log('Checkbox changed:', this.value, this.checked);
             updateSelectedCount();
         });
     });
@@ -149,7 +425,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Подтверждение создания запуска
     launchForm.addEventListener('submit', function(e) {
         const selectedCount = parseInt(selectedCountSpan.textContent);
-        console.log('Form submit, selected count:', selectedCount);
         
         if (selectedCount === 0) {
             e.preventDefault();
@@ -161,14 +436,208 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             return false;
         }
-        
-        console.log('Form submitted successfully');
     });
     
-    // Добавляем обработчики для предотвращения перехода по ссылке при клике на чекбокс
-    caseCheckboxes.forEach(cb => {
-        cb.addEventListener('click', function(e) {
-            e.stopPropagation();
+    // Обработчик смены статуса
+    saveStatusBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        if (!selectedCaseId || !selectedProjPk) {
+            alert('Выберите кейс');
+            return;
+        }
+        
+        const newStatus = statusSelect.value;
+        if (!newStatus) {
+            alert('Выберите статус');
+            return;
+        }
+        
+        // Выполняем AJAX запрос для обновления статуса
+        fetch(`/proj/${selectedProjPk}/case/${selectedCaseId}/edit/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: `status=${newStatus}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Обновляем данные кейса
+                casesList[selectedCaseId].status = newStatus;
+                casesList[selectedCaseId].status_display = data.status_display;
+                
+                // Обновляем статус в списке
+                const caseElement = casesList[selectedCaseId].element;
+                const badgeEl = caseElement.querySelector('.badge');
+                badgeEl.textContent = data.status_display;
+                badgeEl.className = 'badge ' + statusColors[newStatus];
+                badgeEl.dataset.status = newStatus;
+                
+                // Обновляем панель деталей
+                showCaseDetails(selectedCaseId);
+                
+                // Закрываем модаль
+                const modal = bootstrap.Modal.getInstance(document.getElementById('statusModal'));
+                modal.hide();
+            } else {
+                alert('Ошибка при изменении статуса: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ошибка при изменении статуса');
+        });
+    });
+    
+    // Обработчик удаления кейса
+    deleteCaseBtn.addEventListener('click', function() {
+        if (!selectedCaseId || !selectedProjPk) return;
+        
+        if (confirm('Вы уверены, что хотите удалить этот кейс?')) {
+            window.location.href = `/proj/${selectedProjPk}/case/${selectedCaseId}/delete/`;
+        }
+    });
+    
+    // Обработчик открытия модали создания кейса - очищаем форму
+    const caseModalEl = document.getElementById('caseModal');
+    if (caseModalEl) {
+        caseModalEl.addEventListener('show.bs.modal', function() {
+            const titleField = document.getElementById('case_title_field');
+            const textField = document.getElementById('case_text_field');
+            
+            console.log('Opening modal, title field:', titleField, 'text field:', textField);
+            
+            if (titleField) titleField.value = '';
+            if (textField) textField.value = '';
+        });
+    }
+    
+    // Обработчик формы создания кейса
+    caseForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Получаем элементы из DOM в момент submit'а
+        const titleField = document.getElementById('case_title_field');
+        const textField = document.getElementById('case_text_field');
+        const authorField = document.querySelector('input[name="author"]');
+        const projectField = document.querySelector('input[name="project"]');
+        const csrfField = document.querySelector('[name=csrfmiddlewaretoken]');
+        
+        if (!titleField || !textField) {
+            console.error('Form fields not found:', {titleField, textField});
+            alert('Ошибка: не найдены поля формы');
+            return;
+        }
+        
+        const title = titleField.value.trim();
+        const text = textField.value.trim();
+        
+        console.log('Before submit - Title:', title, 'Text:', text);
+        
+        if (!title) {
+            alert('Введите название кейса');
+            titleField.focus();
+            return;
+        }
+        
+        if (!text) {
+            alert('Введите описание кейса');
+            textField.focus();
+            return;
+        }
+        
+        // Отправляем форму через AJAX
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('text', text);
+        if (authorField) formData.append('author', authorField.value);
+        if (projectField) formData.append('project', projectField.value);
+        if (csrfField) formData.append('csrfmiddlewaretoken', csrfField.value);
+        
+        console.log('Submitting form to:', this.action);
+        
+        fetch(this.action, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.success) {
+                // Перезагружаем страницу для показа нового кейса
+                location.reload();
+            } else {
+                alert('Ошибка при создании кейса: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ошибка при создании кейса');
+        });
+    });
+    
+    // Обработчик формы редактирования кейса
+    editCaseForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const title = document.getElementById('id_edit_title').value.trim();
+        const text = document.getElementById('id_edit_text').value.trim();
+        
+        if (!title) {
+            alert('Введите название кейса');
+            return;
+        }
+        
+        if (!text) {
+            alert('Введите описание кейса');
+            return;
+        }
+        
+        // Отправляем форму через AJAX
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('text', text);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        fetch(this.action, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Обновляем данные кейса в памяти
+                casesList[selectedCaseId].title = title;
+                casesList[selectedCaseId].text = text;
+                
+                // Обновляем текст на странице
+                const caseElement = casesList[selectedCaseId].element;
+                caseElement.querySelector('h6').textContent = title;
+                caseElement.querySelector('p').textContent = text;
+                
+                // Обновляем панель деталей
+                showCaseDetails(selectedCaseId);
+                
+                // Закрываем модаль
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editCaseModal'));
+                modal.hide();
+            } else {
+                alert('Ошибка при редактировании кейса: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ошибка при редактировании кейса');
         });
     });
 });

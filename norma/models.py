@@ -34,7 +34,7 @@ class Cases(models.Model):
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default='Черновик')
+        default='draft')
 
     text = models.TextField()
     created_date = models.DateTimeField(default=timezone.now)
@@ -59,7 +59,7 @@ class Launches(models.Model):
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default='В процессе')
+        default='in_progress')
     assignees = models.CharField(max_length=1000, default="default tester")
     created_date = models.DateTimeField(default=timezone.now)
     finish_date = models.DateTimeField(default=timezone.now)

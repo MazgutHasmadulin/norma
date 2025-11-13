@@ -1,0 +1,127 @@
+{% extends 'norma/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Запуски проекта: {{ project.title }}</h1>
+            <p class="text-muted">Всего запусков: <strong>{{ launches.count }}</strong></p>
+        </div>
+        <div>
+            <a href="{% url 'proj_dashboard' pk=project.id %}" class="btn btn-secondary">
+                ← Назад к проекту
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        {% for message in messages %}
+        {{ message }}
+        {% endfor %}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    {% if launches %}
+    <div class="row">
+        {% for launch in launches %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title mb-1">
+                            <a href="{% url 'launch_detail' launch.id %}" class="text-decoration-none">
+                                {{ launch.title }}
+                            </a>
+                        </h5>
+                        <small class="text-muted d-block">
+                            Автор: {{ launch.author.username }}
+                        </small>
+                    </div>
+                    {% if launch.status == 'in_progress' %}
+                    <span class="badge bg-warning text-dark">В процессе</span>
+                    {% elif launch.status == 'completed' %}
+                    <span class="badge bg-success">Завершен</span>
+                    {% endif %}
+                </div>
+
+                <div class="card-body">
+                    {% if launch.description %}
+                    <p class="card-text text-muted small mb-3">{{ launch.description|truncatewords:20 }}</p>
+                    {% endif %}
+
+                    <!-- Статистика -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small mb-2">
+                            <span>Всего кейсов:</span>
+                            <strong>{{ launch.total_count }}</strong>
+                        </div>
+                        {% if launch.total_count > 0 %}
+                        <div class="d-flex justify-content-between small mb-2">
+                            <span class="text-success">✓ Пройдено:</span>
+                            <strong class="text-success">{{ launch.passed_count }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between small mb-2">
+                            <span class="text-danger">✗ Проваленно:</span>
+                            <strong class="text-danger">{{ launch.failed_count }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between small mb-2">
+                            <span class="text-warning">⟳ В процессе:</span>
+                            <strong class="text-warning">{{ launch.in_progress_count }}</strong>
+                        </div>
+                        {% if launch.other_count > 0 %}
+                        <div class="d-flex justify-content-between small">
+                            <span class="text-secondary">⊘ Другие:</span>
+                            <strong class="text-secondary">{{ launch.other_count }}</strong>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+
+                    <hr>
+
+                    <div class="small text-muted">
+                        <div class="mb-1">Создан: <strong>{{ launch.created_date|date:"d.m.Y H:i" }}</strong></div>
+                        <div>Завершен: 
+                            {% if launch.status == 'completed' %}
+                            <strong>{{ launch.finish_date|date:"d.m.Y H:i" }}</strong>
+                            {% else %}
+                            <em>—</em>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-footer bg-transparent d-flex gap-2">
+                    <a href="{% url 'launch_detail' launch.id %}" class="btn btn-sm btn-primary flex-grow-1">
+                        Открыть
+                    </a>
+                    <form method="post" action="{% url 'launch_delete' launch.id %}" style="display: inline;" onsubmit="return confirm('Вы уверены? Все результаты будут удалены.');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-danger">
+                            Удалить
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info" role="alert">
+        <h4 class="alert-heading">Запусков не найдено</h4>
+        <p class="mb-0">Создайте первый запуск, нажав кнопку «Создать запуск» на странице проекта.</p>
+    </div>
+    {% endif %}
+
+    <div class="mt-4">
+        <a href="{% url 'proj_dashboard' pk=project.id %}" class="btn btn-secondary">
+            ← Назад к проекту
+        </a>
+        <a href="{% url 'cases_list' pk=project.id %}" class="btn btn-primary">
+            Создать новый запуск
+        </a>
+    </div>
+</div>
+{% endblock %}
