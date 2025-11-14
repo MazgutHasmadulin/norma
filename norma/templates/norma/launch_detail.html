@@ -11,7 +11,7 @@
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1>{{ launch.name }}</h1>
+            <h1>{{ launch.title }}</h1>
             {% if launch.description %}
             <p>Описание:</p>
             <p class="lead">{{ launch.description }}</p>
@@ -24,67 +24,67 @@
 
     <!-- Дополнительные счетчики: Пропущено, Неизвестно, Требует правки -->
     <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card text-white bg-secondary">
-                <div class="card-body text-center">
-                    <h4>{{ skipped_count }}</h4>
-                    <p class="mb-0">Пропущено</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card text-white bg-warning">
-                <div class="card-body text-center">
-                    <h4>{{ unknown_count }}</h4>
-                    <p class="mb-0">Неизвестно</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card text-white bg-info">
-                <div class="card-body text-center">
-                    <h4>{{ correction_needed_count }}</h4>
-                    <p class="mb-0">Требует правки</p>
-                </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body text-center">
+                <h4 id="totalCasesCount">{{ total_cases }}</h4>
+                <p class="mb-0">Всего кейсов</p>
             </div>
         </div>
     </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body text-center">
+                <h4 id="passedCount">{{ passed_count }}</h4>
+                <p class="mb-0">Успешно</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-danger">
+            <div class="card-body text-center">
+                <h4 id="failedCount">{{ failed_count }}</h4>
+                <p class="mb-0">Провалено</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-secondary">
+            <div class="card-body text-center">
+                <h4 id="inProgressCount">{{ in_progress_count }}</h4>
+                <p class="mb-0">Не запущено</p>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <!-- Статистика запуска -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card text-white bg-primary">
-                <div class="card-body text-center">
-                    <h4>{{ total_cases }}</h4>
-                    <p class="mb-0">Всего кейсов</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-success">
-                <div class="card-body text-center">
-                    <h4>{{ passed_count }}</h4>
-                    <p class="mb-0">Успешно</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-danger">
-                <div class="card-body text-center">
-                    <h4>{{ failed_count }}</h4>
-                    <p class="mb-0">Провалено</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-secondary">
-                <div class="card-body text-center">
-                    <h4>{{ in_progress_count }}</h4>
-                    <p class="mb-0">Не запущено</p>
-                </div>
+<!-- В дополнительных счетчиках тоже добавьте ID: -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-secondary">
+            <div class="card-body text-center">
+                <h4 id="skippedCount">{{ skipped_count }}</h4>
+                <p class="mb-0">Пропущено</p>
             </div>
         </div>
     </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-warning">
+            <div class="card-body text-center">
+                <h4 id="unknownCount">{{ unknown_count }}</h4>
+                <p class="mb-0">Неизвестно</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-info">
+            <div class="card-body text-center">
+                <h4 id="correctionNeededCount">{{ correction_needed_count }}</h4>
+                <p class="mb-0">Требует правки</p>
+            </div>
+        </div>
+    </div>
+</div>
 
     <!-- Список кейсов в запуске (двухколоночный макет: список слева, детали справа) -->
     <div class="row">
@@ -100,9 +100,9 @@
                         <a href="#" class="list-group-item list-group-item-action case-list-item d-flex justify-content-between align-items-start"
                            data-result-id="{{ result.id }}"
                            data-status="{{ result.status }}"
-                           data-title="{{ result.case.title|escapejs }}"
-                           data-text="{{ result.case.text|escapejs }}"
-                           data-comment="{{ result.comment|default_if_none:''|escapejs }}"
+                           data-title="{{ result.case.title }}"
+                           data-text="{{ result.case.text}}"
+                           data-comment="{{ result.comment|default_if_none:''}}"
                            data-executed-by="{% if result.executed_by %}{{ result.executed_by.username }}{% endif %}"
                            data-executed-at="{% if result.executed_at %}{{ result.executed_at|date:'d.m.Y H:i' }}{% endif %}">
                             <div>
@@ -183,7 +183,6 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // helper: get csrf token from hidden form rendered by {% csrf_token %}
     function getCsrfToken() {
         const el = document.querySelector('#globalCsrfForm input[name="csrfmiddlewaretoken"]');
         return el ? el.value : '';
@@ -191,15 +190,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function getStatusColor(status) {
         const colorMap = {
-            'in_progress': 'secondary',
+            'in_progress': 'primary',
             'passed': 'success',
             'failed': 'danger',
             'unknown': 'warning',
             'skipped': 'secondary',
-            'correction_needed': 'info',
-            'in_progress': 'primary'
+            'correction_needed': 'info'
         };
         return colorMap[status] || 'secondary';
+    }
+
+    function getStatusDisplay(status) {
+        const statusMap = {
+            'in_progress': 'В процессе',
+            'passed': 'Успешный',
+            'failed': 'Проваленный',
+            'unknown': 'Неизвестный',
+            'skipped': 'Пропущенный',
+            'correction_needed': 'Требует правки'
+        };
+        return statusMap[status] || status;
     }
 
     function showAlert(message, type) {
@@ -213,85 +223,185 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => { alertDiv.remove(); }, 5000);
     }
 
-    // Обработчик клика по элементу списка — показываем детали в правой панели
+    // Функция для безопасного отображения текста с обработкой переносов строк
+    function formatText(text, defaultValue = '-') {
+        if (!text || text.trim() === '') return defaultValue;
+        return text.replace(/\n/g, '<br>');
+    }
+
+    // Функция для безопасного отображения обычного текста
+    function safeDisplay(text, defaultValue = '-') {
+        if (!text || text.trim() === '') return defaultValue;
+        return text;
+    }
+
+    // Функция для обновления счетчиков статусов
+    function updateStatusCounters(oldStatus, newStatus) {
+        // Уменьшаем счетчик старого статуса
+        if (oldStatus && oldStatus !== 'in_progress') {
+            const oldCounter = document.getElementById(oldStatus + 'Count');
+            if (oldCounter) {
+                let count = parseInt(oldCounter.textContent) || 0;
+                oldCounter.textContent = Math.max(0, count - 1);
+            }
+        }
+
+        // Увеличиваем счетчик нового статуса
+        if (newStatus && newStatus !== 'in_progress') {
+            const newCounter = document.getElementById(newStatus + 'Count');
+            if (newCounter) {
+                let count = parseInt(newCounter.textContent) || 0;
+                newCounter.textContent = count + 1;
+            }
+        }
+
+        // Обновляем счетчик "в процессе"
+        const inProgressCounter = document.getElementById('inProgressCount');
+        if (inProgressCounter) {
+            let inProgressCount = parseInt(inProgressCounter.textContent) || 0;
+            
+            if (oldStatus === 'in_progress' && newStatus !== 'in_progress') {
+                inProgressCounter.textContent = Math.max(0, inProgressCount - 1);
+            } else if (oldStatus !== 'in_progress' && newStatus === 'in_progress') {
+                inProgressCounter.textContent = inProgressCount + 1;
+            }
+        }
+    }
+
+    // Функция для обновления деталей кейса в правой панели
+    function updateCaseDetails(rid, status, comment, executedBy, executedAt) {
+        const detailPane = document.getElementById('caseDetailContent');
+        const currentRid = detailPane.querySelector('[name="current_case_id"]');
+        
+        if (currentRid && currentRid.value === rid) {
+            // Обновляем статус бейдж
+            const detailBadge = document.getElementById('detailStatusBadge');
+            if (detailBadge) {
+                detailBadge.textContent = getStatusDisplay(status);
+                detailBadge.className = `badge bg-${getStatusColor(status)}`;
+            }
+
+            // Обновляем комментарий
+            const commentElement = detailPane.querySelector('#detailComment');
+            if (commentElement) {
+                commentElement.innerHTML = formatText(comment);
+            }
+
+            // Обновляем информацию о выполнении
+            const executionElement = detailPane.querySelector('#detailExecutionInfo');
+            if (executionElement) {
+                executionElement.innerHTML = `
+                    <small class="text-muted">
+                        <strong>Выполнил:</strong> ${safeDisplay(executedBy)}<br>
+                        <strong>Дата выполнения:</strong> ${safeDisplay(executedAt)}
+                    </small>
+                `;
+            }
+        }
+    }
+
+    // Обработчик клика по элементу списка
     document.querySelectorAll('.case-list-item').forEach(item => {
         item.addEventListener('click', function(e) {
             e.preventDefault();
+            
             const rid = this.dataset.resultId;
-            const title = this.dataset.title || '';
-            const text = this.dataset.text || '';
-            const status = this.dataset.status || '';
-            const comment = this.dataset.comment || '';
-            const executedBy = this.dataset.executedBy || '';
-            const executedAt = this.dataset.executedAt || '';
+            const title = safeDisplay(this.dataset.title);
+            const text = formatText(this.dataset.text);
+            const status = safeDisplay(this.dataset.status, 'in_progress');
+            const comment = formatText(this.dataset.comment);
+            const executedBy = safeDisplay(this.dataset.executedBy);
+            const executedAt = safeDisplay(this.dataset.executedAt);
 
             const detail = document.getElementById('caseDetailContent');
+            const statusDisplay = getStatusDisplay(status);
+            
             detail.innerHTML = `
+                <input type="hidden" name="current_case_id" value="${rid}">
                 <h4>${title}</h4>
-                <p><span id="detailStatusBadge" class="badge bg-${getStatusColor(status)}">${status}</span></p>
+                <p><span id="detailStatusBadge" class="badge bg-${getStatusColor(status)}">${statusDisplay}</span></p>
                 <hr />
-                <h6>Описание</h6>
-                <div class="mb-3">${text.replace(/\n/g, '<br />')}</div>
-                <div class="mb-2 text-muted">${comment ? '<strong>Комментарий:</strong> ' + comment : ''}</div>
-                <div class="mb-3 text-muted">${executedBy ? 'Выполнил: ' + executedBy + (executedAt ? ' ('+ executedAt +')' : '') : ''}</div>
-                <div>
+                <h6>Сценарий</h6>
+                <div class="mb-3">${text}</div>
+                
+                <h6>Комментарий</h6>
+                <div id="detailComment" class="mb-3 text-muted">${comment}</div>
+                
+                <h6>Информация о выполнении</h6>
+                <div id="detailExecutionInfo" class="mb-3">
+                    <small class="text-muted">
+                        <strong>Выполнил:</strong> ${executedBy}<br>
+                        <strong>Дата выполнения:</strong> ${executedAt}
+                    </small>
+                </div>
+                
+                <div class="mt-4">
                     <button class="btn btn-success me-2" id="markPassedBtn">Успешно</button>
                     <button class="btn btn-danger" id="markFailedBtn">Неудачно</button>
                 </div>
             `;
 
-            // attach handlers
-            document.getElementById('markPassedBtn').addEventListener('click', function() {
-                // mark as passed via AJAX
-                const csrftoken = getCsrfToken();
-                const fd = new FormData();
-                fd.append('status', 'passed');
-                fd.append('comment', '');
+            // Обработчики для кнопок
+ document.getElementById('markPassedBtn').addEventListener('click', function() {
+    const csrftoken = getCsrfToken();
+    const fd = new FormData();
+    const oldStatus = item.dataset.status;
+    
+    // При успешном статусе всегда отправляем пустой комментарий
+    fd.append('status', 'passed');
+    fd.append('comment', '');  // Всегда пустая строка для успешного статуса
 
-                fetch(`/test-result/${rid}/update/`, {
-                    method: 'POST',
-                    body: fd,
-                    headers: { 'X-CSRFToken': csrftoken }
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        // update list badge
-                        const listItem = document.querySelector(`.case-list-item[data-result-id="${rid}"]`);
-                        if (listItem) {
-                            const badge = listItem.querySelector('span.badge');
-                            if (badge) {
-                                badge.textContent = data.status_display || data.status;
-                                badge.className = `badge bg-${getStatusColor(data.status)}`;
-                            }
-                            // обновим data-status, чтобы при переключении статусы не сбрасывались
-                            listItem.dataset.status = data.status;
-                        }
-                        // update detail badge
-                        const detailBadge = document.getElementById('detailStatusBadge');
-                        if (detailBadge) {
-                            detailBadge.textContent = data.status_display || data.status;
-                            detailBadge.className = `badge bg-${getStatusColor(data.status)}`;
-                        }
-                        showAlert('Кейс помечен как успешно пройден', 'success');
-                    } else {
-                        showAlert('Ошибка при обновлении статуса', 'danger');
-                    }
-                })
-                .catch(err => { console.error(err); showAlert('Ошибка при обновлении статуса', 'danger'); });
-            });
+    fetch(`/test-result/${rid}/update/`, {
+        method: 'POST',
+        body: fd,
+        headers: { 'X-CSRFToken': csrftoken }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            // Сохраняем старый статус для обновления счетчиков
+            const oldStatus = item.dataset.status;
+            
+            // Обновляем data-атрибуты элемента списка
+            item.dataset.status = data.status;
+            item.dataset.comment = data.comment || '';  // Комментарий будет пустым
+            item.dataset.executedBy = data.executed_by || '';
+            item.dataset.executedAt = data.executed_at || '';
+
+            // Обновляем бейдж в списке
+            const badge = item.querySelector('span.badge');
+            if (badge) {
+                badge.textContent = data.status_display || getStatusDisplay(data.status);
+                badge.className = `badge bg-${getStatusColor(data.status)}`;
+            }
+
+            // Обновляем счетчики статусов
+            updateStatusCounters(oldStatus, data.status);
+
+            // Обновляем детали в правой панели
+            updateCaseDetails(rid, data.status, data.comment, data.executed_by, data.executed_at);
+
+            showAlert('Кейс помечен как успешно пройден', 'success');
+        } else {
+            showAlert('Ошибка при обновлении статуса: ' + (data.error || 'Unknown error'), 'danger');
+        }
+    })
+    .catch(err => { 
+        console.error('Error:', err); 
+        showAlert('Ошибка при обновлении статуса', 'danger'); 
+    });
+});
 
             document.getElementById('markFailedBtn').addEventListener('click', function() {
-                // open modal to select fail status
                 const failModal = new bootstrap.Modal(document.getElementById('failStatusModal'));
                 document.getElementById('failResultId').value = rid;
-                document.getElementById('failComment').value = comment || '';
+                document.getElementById('failComment').value = comment !== '-' ? item.dataset.comment : '';
                 failModal.show();
             });
         });
     });
 
-    // handle fail modal submit
+    // Обработчик для модального окна
     document.getElementById('failStatusForm').addEventListener('submit', function(e) {
         e.preventDefault();
         const rid = document.getElementById('failResultId').value;
@@ -303,6 +413,10 @@ document.addEventListener('DOMContentLoaded', function() {
         fd.append('status', status);
         fd.append('comment', comment);
 
+        // Находим элемент списка для этого кейса
+        const listItem = document.querySelector(`.case-list-item[data-result-id="${rid}"]`);
+        const oldStatus = listItem ? listItem.dataset.status : '';
+
         fetch(`/test-result/${rid}/update/`, {
             method: 'POST',
             body: fd,
@@ -311,36 +425,42 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(r => r.json())
         .then(data => {
             if (data.success) {
-                // update list badge
-                const listItem = document.querySelector(`.case-list-item[data-result-id="${rid}"]`);
                 if (listItem) {
+                    // Обновляем data-атрибуты элемента списка
+                    listItem.dataset.status = data.status;
+                    listItem.dataset.comment = data.comment || '';
+                    listItem.dataset.executedBy = data.executed_by || '';
+                    listItem.dataset.executedAt = data.executed_at || '';
+
+                    // Обновляем бейдж в списке
                     const badge = listItem.querySelector('span.badge');
                     if (badge) {
-                        badge.textContent = data.status_display || data.status;
+                        badge.textContent = data.status_display || getStatusDisplay(data.status);
                         badge.className = `badge bg-${getStatusColor(data.status)}`;
                     }
-                    listItem.dataset.status = data.status;
-                }
-                // update detail badge if visible
-                const detailBadge = document.getElementById('detailStatusBadge');
-                if (detailBadge) {
-                    detailBadge.textContent = data.status_display || data.status;
-                    detailBadge.className = `badge bg-${getStatusColor(data.status)}`;
                 }
 
-                // hide modal
+                // Обновляем счетчики статусов
+                updateStatusCounters(oldStatus, data.status);
+
+                // Обновляем детали в правой панели
+                updateCaseDetails(rid, data.status, data.comment, data.executed_by, data.executed_at);
+
+                // Закрываем модальное окно
                 const modalEl = document.getElementById('failStatusModal');
                 const modal = bootstrap.Modal.getInstance(modalEl);
                 if (modal) modal.hide();
 
                 showAlert('Статус успешно обновлён', 'success');
             } else {
-                showAlert('Ошибка при обновлении статуса', 'danger');
+                showAlert('Ошибка при обновлении статуса: ' + (data.errors || 'Unknown error'), 'danger');
             }
         })
-        .catch(err => { console.error(err); showAlert('Ошибка при обновлении статуса', 'danger'); });
+        .catch(err => { 
+            console.error('Error:', err); 
+            showAlert('Ошибка при обновлении статуса', 'danger'); 
+        });
     });
-
 });
 </script>
 {% endblock %}

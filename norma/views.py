@@ -308,8 +308,7 @@ def update_test_result(request, result_id):
     """Обновление результата тест-кейса (AJAX)"""
     test_result = get_object_or_404(TestRunResult, id=result_id)
     
-    # Проверяем, что пользователь имеет доступ к этому запуску.
-    # Разрешаем обновление, если пользователь — автор проекта, автор самого кейса или staff/superuser.
+    # Проверяем, что пользователь имеет доступ к этому запуску
     project = test_result.launch.project
     case_author = test_result.case.author if hasattr(test_result, 'case') and test_result.case else None
     if not (request.user == project.author or request.user == case_author or request.user.is_staff or request.user.is_superuser):
@@ -318,6 +317,11 @@ def update_test_result(request, result_id):
     form = TestResultUpdateForm(request.POST, instance=test_result)
     if form.is_valid():
         result = form.save(commit=False)
+        
+        # Автоматически очищаем комментарий при успешном статусе
+        if result.status == 'passed':
+            result.comment = ''
+        
         if result.status != 'in_progress' and not result.executed_by:
             result.executed_by = request.user
             result.executed_at = timezone.now()
@@ -327,7 +331,7 @@ def update_test_result(request, result_id):
             'success': True,
             'status_display': result.get_status_display(),
             'status': result.status,
-            'comment': result.comment,
+            'comment': result.comment,  # Будет пустой строкой при статусе 'passed'
             'executed_by': result.executed_by.username if result.executed_by else '',
             'executed_at': result.executed_at.strftime('%d.%m.%Y %H:%M') if result.executed_at else ''
         })

@@ -2,16 +2,15 @@
 {% load static %}
 
 <style>
-    .case-item.active {
-        background-color: #0d6efd !important;
-        color: white !important;
-    }
     
+    .list-group-item list-group-item-action case-item active
     .case-item.active h6,
     .case-item.active p,
     .case-item.active small,
-    .case-item.active .text-muted {
-        color: white !important;
+    .mb-1 text-muted small.active {
+                background-color: #ffffff !important;
+        color: rgb(0, 0, 0) !important;
+        border: 1px solid rgba(0,0,0,.125);
     }
     
     .case-item.active .badge {
@@ -67,8 +66,8 @@
                                        onclick="event.stopPropagation();">
                                 <div class="flex-grow-1">
                                     <h6 class="mb-1">{{ case.title }}</h6>
-                                    <p class="mb-1 text-muted small">{{ case.text|truncatewords:20 }}</p>
-                                    <small class="text-muted">
+                                    <p class="mb-1">{{ case.text|truncatewords:20 }}</p>
+                                    <small class="text-reset">
                                         {% if case.status == 'draft' %}
                                             <span class="badge bg-secondary" data-status="draft">{{ case.get_status_display }}</span>
                                         {% elif case.status == 'on_review' %}
@@ -80,7 +79,7 @@
                                         {% else %}
                                             <span class="badge bg-secondary" data-status="draft">{{ case.get_status_display }}</span>
                                         {% endif %}
-                                        | {{ case.author.username }} | {{ case.created_date|date:"d.m.Y" }}
+                                        | {{ case.author.username }} | {{ case.published_date|date:"d.m.Y" }}
                                     </small>
                                 </div>
                             </div>
@@ -120,7 +119,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-muted">Описание</label>
+                        <label class="form-label text-muted">Сценарий</label>
                         <p id="caseDetailText" class="text-dark">—</p>
                     </div>
 
