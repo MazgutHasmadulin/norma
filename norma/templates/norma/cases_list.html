@@ -2,24 +2,44 @@
 {% load static %}
 
 <style>
+    .case-item.active {
+        background-color: #007bff !important;
+        color: white !important;
+        border-color: #007bff !important;
+    }
     
-    .list-group-item list-group-item-action case-item active
     .case-item.active h6,
     .case-item.active p,
     .case-item.active small,
-    .mb-1 text-muted small.active {
-                background-color: #ffffff !important;
-        color: rgb(0, 0, 0) !important;
-        border: 1px solid rgba(0,0,0,.125);
+    .case-item.active .text-muted {
+        color: white !important;
     }
     
     .case-item.active .badge {
-        opacity: 0.9;
-        color: white !important;
+        background-color: white !important;
+        color: #007bff !important;
     }
     
     .case-item.active .form-check-label {
         color: white !important;
+    }
+    
+    /* Стили для текста сценария */
+    .scenario-text {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        line-height: 1.5;
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        border: 1px solid #e9ecef;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .status-badge {
+        font-size: 0.9em;
+        padding: 0.5em 0.8em;
     }
 </style>
 
@@ -41,8 +61,8 @@
     </div>
 
     <div class="row">
-        <!-- Левая колонна: Доступные кейсы -->
-        <div class="col-md-6">
+        <!-- Левая колонка: Доступные кейсы -->
+        <div class="col-md-5">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Доступные тест-кейсы</h5>
@@ -57,7 +77,15 @@
                     {% if cases %}
                     <div class="list-group">
                         {% for case in cases %}
-                        <div class="list-group-item list-group-item-action case-item" data-case-id="{{ case.id }}" data-proj-pk="{{ project.pk }}" style="cursor: pointer;">
+                        <div class="list-group-item list-group-item-action case-item" 
+                             data-case-id="{{ case.id }}" 
+                             data-proj-pk="{{ project.pk }}"
+                             data-title="{{ case.title }}"
+                             data-text="{{ case.text }}"
+                             data-status="{{ case.status }}"
+                             data-author="{{ case.author.username }}"
+                             data-date="{{ case.published_date|date:'d.m.Y H:i' }}"
+                             style="cursor: pointer;">
                             <div class="form-check d-flex align-items-start">
                                 <input class="form-check-input case-checkbox me-3 mt-1" 
                                        type="checkbox" 
@@ -69,17 +97,17 @@
                                     <p class="mb-1">{{ case.text|truncatewords:20 }}</p>
                                     <small class="text-reset">
                                         {% if case.status == 'draft' %}
-                                            <span class="badge bg-secondary" data-status="draft">{{ case.get_status_display }}</span>
+                                            <span class="badge bg-secondary status-badge" data-status="draft">{{ case.get_status_display }}</span>
                                         {% elif case.status == 'on_review' %}
-                                            <span class="badge bg-warning text-dark" data-status="on_review">{{ case.get_status_display }}</span>
+                                            <span class="badge bg-warning text-dark status-badge" data-status="on_review">{{ case.get_status_display }}</span>
                                         {% elif case.status == 'actual' %}
-                                            <span class="badge bg-success" data-status="actual">{{ case.get_status_display }}</span>
+                                            <span class="badge bg-success status-badge" data-status="actual">{{ case.get_status_display }}</span>
                                         {% elif case.status == 'correction_needed' %}
-                                            <span class="badge bg-info text-dark" data-status="correction_needed">{{ case.get_status_display }}</span>
+                                            <span class="badge bg-info text-dark status-badge" data-status="correction_needed">{{ case.get_status_display }}</span>
                                         {% else %}
-                                            <span class="badge bg-secondary" data-status="draft">{{ case.get_status_display }}</span>
+                                            <span class="badge bg-secondary status-badge" data-status="draft">{{ case.get_status_display }}</span>
                                         {% endif %}
-                                        | {{ case.author.username }} | {{ case.published_date|date:"d.m.Y" }}
+                                        | {{ case.author.username }} | {{ case.published_date|date:"d.m.Y H:i" }}
                                     </small>
                                 </div>
                             </div>
@@ -93,11 +121,11 @@
             </div>
         </div>
 
-        <!-- Правая колонна: детали выбранного кейса -->
-        <div class="col-md-6">
-            <div class="card" id="caseDetailsCard" style="display: none;">
+        <!-- Правая колонка: детали выбранного кейса -->
+        <div class="col-md-7">
+            <div id="caseDetailPane" class="card">
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0" id="caseDetailTitle">Выберите кейс</h5>
+                    <h5 class="mb-0">Информация о выбранном кейсе</h5>
                     <div class="btn-group btn-group-sm" role="group">
                         <button type="button" id="editCaseBtn" class="btn btn-outline-primary" style="display: none;" data-bs-toggle="modal" data-bs-target="#editCaseModal">
                             ✎ Редактировать
@@ -110,33 +138,9 @@
                         </button>
                     </div>
                 </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label text-muted">Статус</label>
-                        <div>
-                            <span id="caseDetailStatus" class="badge bg-secondary">—</span>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label text-muted">Сценарий</label>
-                        <p id="caseDetailText" class="text-dark">—</p>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label text-muted">Автор</label>
-                        <p id="caseDetailAuthor" class="text-dark">—</p>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label text-muted">Дата создания</label>
-                        <p id="caseDetailDate" class="text-dark">—</p>
-                    </div>
+                <div class="card-body" id="caseDetailContent">
+                    <p class="text-muted">Выберите тест-кейс слева, чтобы увидеть детали.</p>
                 </div>
-            </div>
-
-            <div class="alert alert-info" id="noSelectionAlert" role="alert">
-                <p class="mb-0">Выберите тест-кейс из списка слева для просмотра деталей</p>
             </div>
         </div>
     </div>
@@ -182,8 +186,8 @@
                         <input type="text" class="form-control" id="case_title_field" name="title" required>
                     </div>
                     <div class="mb-3">
-                        <label for="case_text_field" class="form-label">Описание</label>
-                        <textarea class="form-control" id="case_text_field" name="text" rows="4" required></textarea>
+                        <label for="case_text_field" class="form-label">Сценарий</label>
+                        <textarea class="form-control" id="case_text_field" name="text" rows="6" required></textarea>
                     </div>
                     <input type="hidden" name="author" value="{{ request.user.id }}">
                     <input type="hidden" name="project" value="{{ project.id }}">
@@ -213,8 +217,8 @@
                         <input type="text" class="form-control" id="id_edit_title" name="title" required>
                     </div>
                     <div class="mb-3">
-                        <label for="id_edit_text" class="form-label">Описание</label>
-                        <textarea class="form-control" id="id_edit_text" name="text" rows="4" required></textarea>
+                        <label for="id_edit_text" class="form-label">Сценарий</label>
+                        <textarea class="form-control" id="id_edit_text" name="text" rows="6" required></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -259,6 +263,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Основные элементы DOM
     const selectAllCheckbox = document.getElementById('selectAll');
     const caseCheckboxes = document.querySelectorAll('.case-checkbox');
     const selectedCountSpan = document.getElementById('selectedCount');
@@ -267,8 +272,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const launchForm = document.getElementById('launchForm');
     
     const caseItems = document.querySelectorAll('.case-item');
-    const caseDetailsCard = document.getElementById('caseDetailsCard');
-    const noSelectionAlert = document.getElementById('noSelectionAlert');
+    const caseDetailPane = document.getElementById('caseDetailPane');
+    const caseDetailContent = document.getElementById('caseDetailContent');
     
     const editCaseBtn = document.getElementById('editCaseBtn');
     const changeStatusBtn = document.getElementById('changeStatusBtn');
@@ -281,108 +286,107 @@ document.addEventListener('DOMContentLoaded', function() {
     const caseForm = document.getElementById('caseForm');
     const editCaseForm = document.getElementById('editCaseForm');
     
-    // Проверяем, что форма существует
-    if (!caseForm) {
-        console.error('Case form not found');
-        return;
-    }
-    
+    // Переменные состояния
     let selectedCaseId = null;
     let selectedProjPk = null;
-    let casesList = {};
     
-    const statusMap = {
+    // Цвета статусов
+    const statusColors = {
+        'draft': 'secondary',
+        'on_review': 'warning',
+        'actual': 'success',
+        'correction_needed': 'info'
+    };
+    
+    const statusDisplay = {
         'draft': 'Черновик',
         'on_review': 'На ревью',
         'actual': 'Актуальный',
         'correction_needed': 'Требует доработки'
     };
-    
-    const statusColors = {
-        'draft': 'bg-secondary',
-        'on_review': 'bg-warning text-dark',
-        'actual': 'bg-success',
-        'correction_needed': 'bg-info text-dark'
-    };
-    
-    // Собираем данные всех кейсов
-    // Функция для декодирования HTML-сущностей
-    function decodeHtmlEntities(text) {
-        const textarea = document.createElement('textarea');
-        textarea.innerHTML = text;
-        return textarea.value;
+
+    // Функция для безопасного отображения текста с обработкой переносов строк
+    function formatText(text, defaultValue = 'Не указано') {
+        if (!text || text.trim() === '') return defaultValue;
+        return text.replace(/\n/g, '<br>');
     }
-    
-    caseItems.forEach(item => {
-        const caseId = item.dataset.caseId;
-        const projPk = item.dataset.projPk;
-        const statusEl = item.querySelector('.badge');
-        const statusKey = statusEl.dataset.status;
-        const titleEl = item.querySelector('h6');
-        const textEl = item.querySelector('p');
-        
-        casesList[caseId] = {
-            id: caseId,
-            proj_pk: projPk,
-            title: decodeHtmlEntities(titleEl.innerHTML),  // Декодируем HTML-сущности
-            text: textEl.textContent,
-            status: statusKey,
-            status_display: statusEl.textContent,
-            author: item.querySelector('small').textContent.split('|')[1]?.trim() || 'Unknown',
-            date: item.querySelector('small').textContent.split('|')[2]?.trim() || '—',
-            element: item
-        };
-    });
-    
+
+    // Функция для безопасного отображения обычного текста
+    function safeDisplay(text, defaultValue = 'Не указано') {
+        if (!text || text.trim() === '') return defaultValue;
+        return text;
+    }
+
     // Функция для отображения деталей кейса
-    function showCaseDetails(caseId) {
-        const caseData = casesList[caseId];
-        if (!caseData) return;
+    function showCaseDetails(caseItem) {
+        const caseId = caseItem.dataset.caseId;
+        const projPk = caseItem.dataset.projPk;
+        const title = safeDisplay(caseItem.dataset.title);
+        const text = formatText(caseItem.dataset.text);
+        const status = safeDisplay(caseItem.dataset.status, 'draft');
+        const author = safeDisplay(caseItem.dataset.author);
+        const date = safeDisplay(caseItem.dataset.date);
         
         selectedCaseId = caseId;
-        selectedProjPk = caseData.proj_pk;
+        selectedProjPk = projPk;
         
         // Обновляем содержимое панели деталей
-        // Используем textContent для безопасного отображения (сущности уже декодированы)
-        document.getElementById('caseDetailTitle').textContent = caseData.title;
-        // Преобразуем \n в <br> для правильного отображения абзацев
-        const formattedText = caseData.text.replace(/\n/g, '<br>');
-        document.getElementById('caseDetailText').innerHTML = formattedText;
-        document.getElementById('caseDetailAuthor').textContent = caseData.author;
-        document.getElementById('caseDetailDate').textContent = caseData.date;
-        
-        // Обновляем статус с правильной раскраской
-        const statusBadge = document.getElementById('caseDetailStatus');
-        statusBadge.textContent = caseData.status_display;
-        statusBadge.className = 'badge ' + statusColors[caseData.status];
-        statusSelect.value = caseData.status;
-        
-        // Показываем карту деталей
-        caseDetailsCard.style.display = 'block';
-        noSelectionAlert.style.display = 'none';
-        
+        caseDetailContent.innerHTML = `
+            <input type="hidden" name="current_case_id" value="${caseId}">
+            <h4>${title}</h4>
+            <p><span class="badge bg-${statusColors[status]} status-badge">${statusDisplay[status]}</span></p>
+            <hr />
+            
+            <h6>Сценарий</h6>
+            <div class="scenario-text mb-3">${text}</div>
+            
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <h6>Автор</h6>
+                    <p class="text">${author}</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>Дата создания</h6>
+                    <p class="text">${date}</p>
+                </div>
+            </div>
+        `;
+
         // Показываем кнопки действий
         editCaseBtn.style.display = 'inline-block';
-        // Заполняем форму редактирования при клике на кнопку
-        editCaseBtn.onclick = function(e) {
-            e.preventDefault();
-            document.getElementById('id_edit_title').value = caseData.title;
-            document.getElementById('id_edit_text').value = caseData.text;
-            editCaseForm.action = `/proj/${selectedProjPk}/case/${caseId}/edit/`;
-        };
         changeStatusBtn.style.display = 'inline-block';
         deleteCaseBtn.style.display = 'inline-block';
         
+        // Сохраняем выбранный кейс в localStorage
+        localStorage.setItem('selectedCase_' + window.location.pathname, caseId);
+        
         // Подсвечиваем выбранный элемент
         caseItems.forEach(item => item.classList.remove('active'));
-        caseData.element.classList.add('active');
+        caseItem.classList.add('active');
+        
+        // Прокручиваем к выбранному элементу
+        caseItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
-    
+
+    // Функция для скрытия деталей кейса
+    function hideCaseDetails() {
+        caseDetailContent.innerHTML = '<p class="text-muted">Выберите тест-кейс слева, чтобы увидеть детали.</p>';
+        editCaseBtn.style.display = 'none';
+        changeStatusBtn.style.display = 'none';
+        deleteCaseBtn.style.display = 'none';
+        
+        // Убираем подсветку
+        caseItems.forEach(item => item.classList.remove('active'));
+        
+        // Очищаем сохраненный выбор
+        localStorage.removeItem('selectedCase_' + window.location.pathname);
+    }
+
     // Обработчик клика на кейс
     caseItems.forEach(item => {
         item.addEventListener('click', function(e) {
             if (!e.target.closest('.form-check-input')) {
-                showCaseDetails(this.dataset.caseId);
+                showCaseDetails(this);
             }
         });
     });
@@ -397,7 +401,9 @@ document.addEventListener('DOMContentLoaded', function() {
         createLaunchBtn.disabled = count === 0;
         
         const caseIds = selectedCases.map(cb => cb.value).join(',');
-        caseIdsField.value = caseIds;
+        if (caseIdsField) {
+            caseIdsField.value = caseIds;
+        }
         
         selectAllCheckbox.checked = count === caseCheckboxes.length && count > 0;
         selectAllCheckbox.indeterminate = count > 0 && count < caseCheckboxes.length;
@@ -421,21 +427,32 @@ document.addEventListener('DOMContentLoaded', function() {
     // Инициализация счетчика
     updateSelectedCount();
     
+    // Восстановление выбранного кейса после перезагрузки
+    const savedCaseId = localStorage.getItem('selectedCase_' + window.location.pathname);
+    if (savedCaseId) {
+        const savedCaseItem = document.querySelector(`.case-item[data-case-id="${savedCaseId}"]`);
+        if (savedCaseItem) {
+            showCaseDetails(savedCaseItem);
+        }
+    }
+    
     // Подтверждение создания запуска
-    launchForm.addEventListener('submit', function(e) {
-        const selectedCount = parseInt(selectedCountSpan.textContent);
-        
-        if (selectedCount === 0) {
-            e.preventDefault();
-            alert('Выберите хотя бы один тест-кейс');
-            return false;
-        }
-        
-        if (!confirm(`Создать запуск с ${selectedCount} кейсами?`)) {
-            e.preventDefault();
-            return false;
-        }
-    });
+    if (launchForm) {
+        launchForm.addEventListener('submit', function(e) {
+            const selectedCount = parseInt(selectedCountSpan.textContent);
+            
+            if (selectedCount === 0) {
+                e.preventDefault();
+                alert('Выберите хотя бы один тест-кейс');
+                return false;
+            }
+            
+            if (!confirm(`Создать запуск с ${selectedCount} кейсами?`)) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    }
     
     // Обработчик смены статуса
     saveStatusBtn.addEventListener('click', function(e) {
@@ -465,23 +482,26 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Обновляем данные кейса
-                casesList[selectedCaseId].status = newStatus;
-                casesList[selectedCaseId].status_display = data.status_display;
-                
-                // Обновляем статус в списке
-                const caseElement = casesList[selectedCaseId].element;
-                const badgeEl = caseElement.querySelector('.badge');
-                badgeEl.textContent = data.status_display;
-                badgeEl.className = 'badge ' + statusColors[newStatus];
-                badgeEl.dataset.status = newStatus;
-                
-                // Обновляем панель деталей
-                showCaseDetails(selectedCaseId);
+                // Обновляем data-атрибуты элемента списка
+                const caseElement = document.querySelector(`.case-item[data-case-id="${selectedCaseId}"]`);
+                if (caseElement) {
+                    caseElement.dataset.status = newStatus;
+                    
+                    // Обновляем бейдж в списке
+                    const badgeEl = caseElement.querySelector('.badge');
+                    badgeEl.textContent = data.status_display || statusDisplay[newStatus];
+                    badgeEl.className = `badge bg-${statusColors[newStatus]} status-badge`;
+                    badgeEl.dataset.status = newStatus;
+                    
+                    // Обновляем панель деталей
+                    showCaseDetails(caseElement);
+                }
                 
                 // Закрываем модаль
                 const modal = bootstrap.Modal.getInstance(document.getElementById('statusModal'));
                 modal.hide();
+                
+                showAlert('Статус успешно обновлён', 'success');
             } else {
                 alert('Ошибка при изменении статуса: ' + (data.error || 'Unknown error'));
             }
@@ -508,139 +528,163 @@ document.addEventListener('DOMContentLoaded', function() {
             const titleField = document.getElementById('case_title_field');
             const textField = document.getElementById('case_text_field');
             
-            console.log('Opening modal, title field:', titleField, 'text field:', textField);
-            
             if (titleField) titleField.value = '';
             if (textField) textField.value = '';
         });
     }
     
     // Обработчик формы создания кейса
-    caseForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        // Получаем элементы из DOM в момент submit'а
-        const titleField = document.getElementById('case_title_field');
-        const textField = document.getElementById('case_text_field');
-        const authorField = document.querySelector('input[name="author"]');
-        const projectField = document.querySelector('input[name="project"]');
-        const csrfField = document.querySelector('[name=csrfmiddlewaretoken]');
-        
-        if (!titleField || !textField) {
-            console.error('Form fields not found:', {titleField, textField});
-            alert('Ошибка: не найдены поля формы');
-            return;
-        }
-        
-        const title = titleField.value.trim();
-        const text = textField.value.trim();
-        
-        console.log('Before submit - Title:', title, 'Text:', text);
-        
-        if (!title) {
-            alert('Введите название кейса');
-            titleField.focus();
-            return;
-        }
-        
-        if (!text) {
-            alert('Введите описание кейса');
-            textField.focus();
-            return;
-        }
-        
-        // Отправляем форму через AJAX
-        const formData = new FormData();
-        formData.append('title', title);
-        formData.append('text', text);
-        if (authorField) formData.append('author', authorField.value);
-        if (projectField) formData.append('project', projectField.value);
-        if (csrfField) formData.append('csrfmiddlewaretoken', csrfField.value);
-        
-        console.log('Submitting form to:', this.action);
-        
-        fetch(this.action, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => {
-            console.log('Response status:', response.status);
-            return response.json();
-        })
-        .then(data => {
-            console.log('Response data:', data);
-            if (data.success) {
-                // Перезагружаем страницу для показа нового кейса
-                location.reload();
-            } else {
-                alert('Ошибка при создании кейса: ' + (data.error || 'Unknown error'));
+    if (caseForm) {
+        caseForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const titleField = document.getElementById('case_title_field');
+            const textField = document.getElementById('case_text_field');
+            const authorField = document.querySelector('input[name="author"]');
+            const projectField = document.querySelector('input[name="project"]');
+            const csrfField = document.querySelector('[name=csrfmiddlewaretoken]');
+            
+            if (!titleField || !textField) {
+                alert('Ошибка: не найдены поля формы');
+                return;
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Ошибка при создании кейса');
+            
+            const title = titleField.value.trim();
+            const text = textField.value;
+            
+            if (!title) {
+                alert('Введите название кейса');
+                titleField.focus();
+                return;
+            }
+            
+            if (!text) {
+                alert('Введите сценарий кейса');
+                textField.focus();
+                return;
+            }
+            
+            // Отправляем форму через AJAX
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('text', text);
+            if (authorField) formData.append('author', authorField.value);
+            if (projectField) formData.append('project', projectField.value);
+            if (csrfField) formData.append('csrfmiddlewaretoken', csrfField.value);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Ошибка при создании кейса: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Ошибка при создании кейса');
+            });
         });
-    });
+    }
     
     // Обработчик формы редактирования кейса
-    editCaseForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const title = document.getElementById('id_edit_title').value.trim();
-        const text = document.getElementById('id_edit_text').value.trim();
-        
-        if (!title) {
-            alert('Введите название кейса');
-            return;
-        }
-        
-        if (!text) {
-            alert('Введите описание кейса');
-            return;
-        }
-        
-        // Отправляем форму через AJAX
-        const formData = new FormData();
-        formData.append('title', title);
-        formData.append('text', text);
-        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-        
-        fetch(this.action, {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Обновляем данные кейса в памяти
-                casesList[selectedCaseId].title = title;
-                casesList[selectedCaseId].text = text;
-                
-                // Обновляем текст на странице
-                const caseElement = casesList[selectedCaseId].element;
-                caseElement.querySelector('h6').textContent = title;
-                caseElement.querySelector('p').textContent = text;
-                
-                // Обновляем панель деталей
-                showCaseDetails(selectedCaseId);
-                
-                // Закрываем модаль
-                const modal = bootstrap.Modal.getInstance(document.getElementById('editCaseModal'));
-                modal.hide();
-            } else {
-                alert('Ошибка при редактировании кейса: ' + (data.error || 'Unknown error'));
+    if (editCaseForm) {
+        editCaseForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('id_edit_title').value.trim();
+            const text = document.getElementById('id_edit_text').value;
+            
+            if (!title) {
+                alert('Введите название кейса');
+                return;
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Ошибка при редактировании кейса');
+            
+            if (!text) {
+                alert('Введите сценарий кейса');
+                return;
+            }
+            
+            // Заполняем action формы
+            editCaseForm.action = `/proj/${selectedProjPk}/case/${selectedCaseId}/edit/`;
+            
+            // Отправляем форму через AJAX
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('text', text);
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            
+            fetch(this.action, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Обновляем data-атрибуты элемента списка
+                    const caseElement = document.querySelector(`.case-item[data-case-id="${selectedCaseId}"]`);
+                    if (caseElement) {
+                        caseElement.dataset.title = title;
+                        caseElement.dataset.text = text;
+                        
+                        // Обновляем текст на странице
+                        caseElement.querySelector('h6').textContent = title;
+                        caseElement.querySelector('p').textContent = text.substring(0, 100) + (text.length > 100 ? '...' : '');
+                        
+                        // Обновляем панель деталей
+                        showCaseDetails(caseElement);
+                    }
+                    
+                    // Закрываем модаль
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editCaseModal'));
+                    modal.hide();
+                    
+                    showAlert('Кейс успешно обновлён', 'success');
+                } else {
+                    alert('Ошибка при редактировании кейса: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Ошибка при редактировании кейса');
+            });
         });
+    }
+    
+    // Функция для показа уведомлений
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 1060; min-width: 300px;';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+        setTimeout(() => { 
+            if (alertDiv.parentNode) {
+                alertDiv.remove(); 
+            }
+        }, 5000);
+    }
+    
+    // Заполняем форму редактирования при клике на кнопку
+    editCaseBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const caseElement = document.querySelector(`.case-item[data-case-id="${selectedCaseId}"]`);
+        if (caseElement) {
+            document.getElementById('id_edit_title').value = caseElement.dataset.title;
+            document.getElementById('id_edit_text').value = caseElement.dataset.text;
+        }
     });
 });
 </script>
 
 {% endblock %}
-
