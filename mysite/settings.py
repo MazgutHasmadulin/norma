@@ -23,10 +23,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-e3h&-1_$v)@t4cq8=dm^z7o#awlc%r1ulg_xyh%ej2do!vlv*5'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['127.0.0.1', 'sneakerSnake.pythonanywhere.com']
-
+ALLOWED_HOSTS = ['192.168.0.2', '.pythonanywhere.com', 'https://zoek-zerver.ru', 'https://dev.zoek-zerver.ru', '.zoek-zerver.ru', 'https://dev.zoek-zerver.ru']
+CSRF_TRUSTED_ORIGINS = ['https://example.com', 'https://www.example.com', 'https://dev.zoek-zerver.ru']
+CORS_ALLOWED_ORIGINS = ['https://example.com', 'https://www.example.com', 'https://dev.zoek-zerver.ru']
 
 # Application definition
 
@@ -117,8 +118,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
-STATIC_ROOT=BASE_DIR / 'static'
+STATIC_URL = '/static/'
+STATIC_ROOT = 'home/zoek/pro/norma/static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
